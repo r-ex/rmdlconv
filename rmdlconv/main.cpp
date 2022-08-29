@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 	else
 		version = cmdline.GetParamValue("-version", "12.1");
 
-	printf("input RMDL is version %s. Continuing to conversion\n", version.c_str());
+	printf("input RMDL is version %s. Continuing to conversion\n\n", version.c_str());
 
 	// always call ChangeExtension so we guarantee that the path is .vg
 	std::string vgFilePath = ChangeExtension(argv[1], "vg");

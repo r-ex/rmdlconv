@@ -7,7 +7,6 @@ struct Vector3
 	float x, y, z;
 };
 
-
 struct VGHeaderNew
 {
 	int id;		// 0x47567430	'0tVG'
@@ -423,8 +422,8 @@ struct studiohdr_121_t
 
 	int bonetablebynameindex;
 
-	int numunk1_v121;
-	int unkindex1_v121;
+	int numunk1_v121; // count is (lodCount / totalSubmeshCount)
+	int unkindex1_v121; // data matches the "unknown" data in s3 VG
 
 	int boneremapindex;
 	int numboneremaps;

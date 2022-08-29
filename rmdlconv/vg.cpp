@@ -63,7 +63,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	char* stripsBuf = new char[stripsBufSize];
 	char* submeshBuf = new char[lodSubmeshCount * sizeof(VGSubmesh)];
 
-	printf("allocated buffers:\n");
+	printf("VG: allocatedbuffers:\n");
 	printf(
 		"vertex: %lld\nindex: %lld\nextendedWeights: %lld\nexternalWeights: %lld\n",
 		vertexBufSize,
@@ -141,6 +141,8 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	char* boneRemapBuf = nullptr;
 	unsigned int boneRemapCount = 0;
 
+	char* unkDataBuf = nullptr;
+
 	if (std::filesystem::exists(rmdlPath) && GetFileSize(rmdlPath) > sizeof(studiohdr_121_t))
 	{
 		// grab bone remaps from rmdl
@@ -159,6 +161,17 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 			boneRemapBuf = new char[boneRemapCount];
 			ifs.read(boneRemapBuf, boneRemapCount);
 		}
+
+		if (hdr.numunk1_v121 > 0)
+		{
+			ifs.seekg(offsetof(studiohdr_121_t, unkindex1_v121) + hdr.unkindex1_v121, std::ios::beg);
+
+			unkDataBuf = new char[hdr.numunk1_v121 * 0x30];
+			ifs.read(unkDataBuf, hdr.numunk1_v121 * 0x30);
+		}
+
+		// close rmdl stream once we are done with it
+		ifs.close();
 	}
 
 	VGHeader vgh{};
@@ -194,10 +207,12 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	vgh.extendedWeightsOffset = out.tell();
 	out.getWriter()->write(extendedWeightsBuf, extendedWeightsBufSize);
 
-	// not sure what this data is supposed to do, but it doesn't seem to break anything if it's nulled
-	char* unkbuf = new char[vgh.unknownCount * 0x30] {};
+	// if this data hasn't been retrieved from .rmdl, write it as null bytes
+	if(!unkDataBuf)
+		unkDataBuf = new char[vgh.unknownCount * 0x30]{};
+
 	vgh.unknownOffset = out.tell();
-	out.getWriter()->write(unkbuf, vgh.unknownCount * 0x30);
+	out.getWriter()->write(unkDataBuf, vgh.unknownCount * 0x30);
 
 	vgh.lodOffset = out.tell();
 	out.getWriter()->write(lodBuf, lodBufSize);
@@ -215,5 +230,17 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	out.write(vgh);
 
 	out.close();
-	printf("done!\n");
+
+	printf("done! freeing buffers\n");
+
+	if (boneRemapBuf)
+		delete[] boneRemapBuf;
+	delete[] submeshBuf;
+	delete[] indexBuf;
+	delete[] vertexBuf;
+	delete[] extendedWeightsBuf;
+	delete[] unkDataBuf;
+	delete[] lodBuf;
+	delete[] externalWeightsBuf;
+	delete[] stripsBuf;
 }
