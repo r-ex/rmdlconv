@@ -69,7 +69,7 @@ int main(int argc, char** argv)
 
 	if (version == "12.1") // handle 12.1 model conversions
 	{
-		if (vgInputBuf != nullptr) // if vgInputBuf == nullptr, there is no valid vg file
+		if (vgInputBuf) // if vgInputBuf == nullptr, there is no valid vg file
 			ConvertVGData_12_1(vgInputBuf, vgFilePath);
 	}
 	else

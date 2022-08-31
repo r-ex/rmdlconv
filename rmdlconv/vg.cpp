@@ -27,8 +27,9 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	size_t lodBufSize = vghInput.lodCount * sizeof(VGLod);
 	unsigned short lodSubmeshCount = 0;
 
-	char* lodBuf = new char[lodBufSize];
-	rmem lods(lodBuf);
+	//char* lodBuf = new char[lodBufSize];
+	std::unique_ptr<char[]> lodBuf(new char[lodBufSize]);
+	rmem lods(lodBuf.get());
 
 	for (unsigned int i = 0; i < vghInput.lodCount; ++i)
 	{
@@ -215,7 +216,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	out.getWriter()->write(unkDataBuf, vgh.unknownCount * 0x30);
 
 	vgh.lodOffset = out.tell();
-	out.getWriter()->write(lodBuf, lodBufSize);
+	out.getWriter()->write(lodBuf.get(), lodBufSize);
 
 	vgh.externalWeightsOffset = out.tell();
 	out.getWriter()->write(externalWeightsBuf, externalWeightsBufSize);
@@ -240,7 +241,6 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	delete[] vertexBuf;
 	delete[] extendedWeightsBuf;
 	delete[] unkDataBuf;
-	delete[] lodBuf;
 	delete[] externalWeightsBuf;
 	delete[] stripsBuf;
 }
