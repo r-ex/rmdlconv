@@ -25,7 +25,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	size_t externalWeightsBufSize = 0;
 	size_t stripsBufSize = 0;
 	size_t lodBufSize = vghInput.lodCount * sizeof(VGLod);
-	unsigned short lodSubmeshCount = 0;
+	uint16_t lodSubmeshCount = 0;
 
 	//char* lodBuf = new char[lodBufSize];
 	std::unique_ptr<char[]> lodBuf(new char[lodBufSize]);
