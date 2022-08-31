@@ -57,12 +57,12 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 		lodSubmeshCount += lodInput.submeshCount;
 	}
 
-	char* vertexBuf = new char[vertexBufSize];
-	char* indexBuf = new char[indexBufSize];
-	char* extendedWeightsBuf = new char[extendedWeightsBufSize];
-	char* externalWeightsBuf = new char[externalWeightsBufSize];
-	char* stripsBuf = new char[stripsBufSize];
-	char* submeshBuf = new char[lodSubmeshCount * sizeof(VGSubmesh)];
+	std::unique_ptr<char[]> vertexBuf(new char[vertexBufSize]);
+	std::unique_ptr<char[]> indexBuf(new char[indexBufSize]);
+	std::unique_ptr<char[]> extendedWeightsBuf(new char[extendedWeightsBufSize]);
+	std::unique_ptr<char[]> externalWeightsBuf(new char[externalWeightsBufSize]);
+	std::unique_ptr<char[]> stripsBuf(new char[stripsBufSize]);
+	std::unique_ptr<char[]> submeshBuf(new char[lodSubmeshCount * sizeof(VGSubmesh)]);
 
 	printf("VG: allocatedbuffers:\n");
 	printf(
@@ -79,7 +79,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	externalWeightsBufSize = 0;
 	stripsBufSize = 0;
 
-	rmem submeshes(submeshBuf);
+	rmem submeshes(submeshBuf.get());
 
 	// populate buffers fr
 	for (unsigned int i = 0; i < vghInput.lodCount; ++i)
@@ -116,23 +116,23 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 			submeshes.write(submesh);
 			
 			void* vtxPtr = (thisSubmeshPointer + offsetof(VGSubmeshNew, vertexOffset) + submeshInput.vertexOffset);
-			std::memcpy(vertexBuf + vertexBufSize, vtxPtr, submeshInput.vertexBufferSize);
+			std::memcpy(vertexBuf.get() + vertexBufSize, vtxPtr, submeshInput.vertexBufferSize);
 			vertexBufSize += submeshInput.vertexBufferSize;
 
 			void* indexPtr = (thisSubmeshPointer + offsetof(VGSubmeshNew, indexOffset) + submeshInput.indexOffset);
-			std::memcpy(indexBuf + indexBufSize, indexPtr, submeshInput.indexPacked.Count * 2);
+			std::memcpy(indexBuf.get() + indexBufSize, indexPtr, submeshInput.indexPacked.Count * 2);
 			indexBufSize += submeshInput.indexPacked.Count * 2;
 
 			void* extendedWeightsPtr = (thisSubmeshPointer + offsetof(VGSubmeshNew, extendedWeightsOffset) + submeshInput.extendedWeightsOffset);
-			std::memcpy(extendedWeightsBuf + extendedWeightsBufSize, extendedWeightsPtr, submeshInput.extendedWeightsCount);
+			std::memcpy(extendedWeightsBuf.get() + extendedWeightsBufSize, extendedWeightsPtr, submeshInput.extendedWeightsCount);
 			extendedWeightsBufSize += submeshInput.extendedWeightsCount;
 
 			void* externalWeightsPtr = (thisSubmeshPointer + offsetof(VGSubmeshNew, externalWeightsOffset) + submeshInput.externalWeightsOffset);
-			std::memcpy(externalWeightsBuf + externalWeightsBufSize, externalWeightsPtr, submeshInput.externalWeightsCount * 0x10);
+			std::memcpy(externalWeightsBuf.get() + externalWeightsBufSize, externalWeightsPtr, submeshInput.externalWeightsCount * 0x10);
 			externalWeightsBufSize += submeshInput.externalWeightsCount * 0x10;
 
 			void* stripsPtr = (thisSubmeshPointer + offsetof(VGSubmeshNew, stripsOffset) + submeshInput.stripsOffset);
-			std::memcpy(stripsBuf + stripsBufSize, stripsPtr, submeshInput.stripsCount * sizeof(VGStrip));
+			std::memcpy(stripsBuf.get() + stripsBufSize, stripsPtr, submeshInput.stripsCount * sizeof(VGStrip));
 			stripsBufSize += submeshInput.stripsCount * sizeof(VGStrip);
 		}
 	}
@@ -197,16 +197,16 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 		out.getWriter()->write(boneRemapBuf, boneRemapCount);
 
 	vgh.submeshOffset = out.tell();
-	out.getWriter()->write(submeshBuf, lodSubmeshCount * sizeof(VGSubmesh));
+	out.getWriter()->write(submeshBuf.get(), lodSubmeshCount * sizeof(VGSubmesh));
 
 	vgh.indexOffset = out.tell();
-	out.getWriter()->write(indexBuf, indexBufSize);
+	out.getWriter()->write(indexBuf.get(), indexBufSize);
 
 	vgh.vertexOffset = out.tell();
-	out.getWriter()->write(vertexBuf, vertexBufSize);
+	out.getWriter()->write(vertexBuf.get(), vertexBufSize);
 
 	vgh.extendedWeightsOffset = out.tell();
-	out.getWriter()->write(extendedWeightsBuf, extendedWeightsBufSize);
+	out.getWriter()->write(extendedWeightsBuf.get(), extendedWeightsBufSize);
 
 	// if this data hasn't been retrieved from .rmdl, write it as null bytes
 	if(!unkDataBuf)
@@ -219,10 +219,10 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	out.getWriter()->write(lodBuf.get(), lodBufSize);
 
 	vgh.externalWeightsOffset = out.tell();
-	out.getWriter()->write(externalWeightsBuf, externalWeightsBufSize);
+	out.getWriter()->write(externalWeightsBuf.get(), externalWeightsBufSize);
 
 	vgh.stripsOffset = out.tell();
-	out.getWriter()->write(stripsBuf, stripsBufSize);
+	out.getWriter()->write(stripsBuf.get(), stripsBufSize);
 
 	vgh.dataSize = (unsigned int)out.tell();
 
@@ -236,11 +236,6 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 
 	if (boneRemapBuf)
 		delete[] boneRemapBuf;
-	delete[] submeshBuf;
-	delete[] indexBuf;
-	delete[] vertexBuf;
-	delete[] extendedWeightsBuf;
+
 	delete[] unkDataBuf;
-	delete[] externalWeightsBuf;
-	delete[] stripsBuf;
 }
