@@ -444,7 +444,7 @@ struct PackedVertexWeights
 
 struct VGVertex_t
 {
-	Vector3 m_packedPosition;
+	Vector3 m_vecPosition; // this needs to be made into packed pos
 	PackedVertexWeights m_packedWeights;
 	uint32_t m_packedNormal;
 	Vector2 m_vecTexCoord;
