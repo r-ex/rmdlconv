@@ -1,11 +1,9 @@
-#include <iostream>
-#include <cstdarg>
-#include <filesystem>
-#include <fstream>
+#include "stdafx.h"
 
-#include "vg.h"
+#include "versions.h"
 #include "utils.h"
 #include "CommandLine.h"
+#include "BinaryIO.h"
 
 const char* pszVersionHelpString = {
 	"Please input the version of your model:\n"
@@ -34,46 +32,67 @@ int main(int argc, char** argv)
     if (!FILE_EXISTS(argv[1]))
         Error("couldn't find input file\n");
 
-	// version is used to identify the format of the model to be converted,
-	// as there are many subversions of MDL v54 which are not easily identifiable from the data alone
-	std::string version = "12.1";
+	std::string mdlPath(argv[1]);
 
-	// get version from command line if specified or ask for manual input
-	if (!cmdline.HasParam("-version"))
+	BinaryIO mdlIn;
+	mdlIn.open(mdlPath, BinaryIOMode::Read);
+
+	if (mdlIn.read<int>() != 'TSDI')
+		Error("invalid input file. must be a valid .(r)mdl file with magic 'IDST'\n");
+
+	int mdlVersion = mdlIn.read<int>();
+
+	if (mdlVersion == 54)
 	{
-		std::cout << pszVersionHelpString;
-		std::cin >> version;
+		// === RMDL -> RMDL ===
+
+		// version is used to identify the format of the model to be converted,
+		// as there are many subversions of MDL v54 which are not easily identifiable from the data alone
+
+		std::string version = "12.1";
+
+		// get version from command line if specified or ask for manual input
+		if (!cmdline.HasParam("-version"))
+		{
+			std::cout << pszVersionHelpString;
+			std::cin >> version;
+		}
+		else
+			version = cmdline.GetParamValue("-version", "12.1");
+
+		printf("input MDL is version %s. converting...\n\n", version.c_str());
+
+		// always call ChangeExtension so we guarantee that the path is .vg
+		std::string vgFilePath = ChangeExtension(mdlPath, "vg");
+		char* vgInputBuf = nullptr;
+
+		if (FILE_EXISTS(vgFilePath))
+		{
+			uintmax_t vgInputSize = GetFileSize(vgFilePath);
+
+			vgInputBuf = new char[vgInputSize];
+
+			std::ifstream ifs(vgFilePath, std::ios::in | std::ios::binary);
+
+			ifs.read(vgInputBuf, vgInputSize);
+
+			if (*(int*)vgInputBuf != 0x47567430) // 0tVG
+				delete[] vgInputBuf;
+		}
+
+		if (version == "12.1") // handle 12.1 model conversions
+		{
+			if (vgInputBuf) // if vgInputBuf == nullptr, there is no valid vg file
+				ConvertVGData_12_1(vgInputBuf, vgFilePath);
+		}
+		else if (version == "8")
+		{
+			CreateVGFile_v8(mdlPath);
+		}
+		else
+		{
+			Error("version is not currently supported\n");
+		}
 	}
-	else
-		version = cmdline.GetParamValue("-version", "12.1");
 
-	printf("input RMDL is version %s. Continuing to conversion\n\n", version.c_str());
-
-	// always call ChangeExtension so we guarantee that the path is .vg
-	std::string vgFilePath = ChangeExtension(argv[1], "vg");
-	char* vgInputBuf = nullptr;
-
-	if (FILE_EXISTS(vgFilePath))
-	{
-		uintmax_t vgInputSize = GetFileSize(vgFilePath);
-
-		vgInputBuf = new char[vgInputSize];
-
-		std::ifstream ifs(vgFilePath, std::ios::in | std::ios::binary);
-
-		ifs.read(vgInputBuf, vgInputSize);
-
-		if (*(int*)vgInputBuf != 0x47567430) // 0tVG
-			delete[] vgInputBuf;
-	}
-
-	if (version == "12.1") // handle 12.1 model conversions
-	{
-		if (vgInputBuf) // if vgInputBuf == nullptr, there is no valid vg file
-			ConvertVGData_12_1(vgInputBuf, vgFilePath);
-	}
-	else
-	{
-		Error("version %s is not currently supported\n", version.c_str());
-	}
 }

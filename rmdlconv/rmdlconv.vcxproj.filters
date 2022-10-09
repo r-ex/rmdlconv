@@ -13,16 +13,34 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\mdl">
+      <UniqueIdentifier>{f91225cc-4e28-46b8-937a-4bc93f0c2693}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\rmdl">
+      <UniqueIdentifier>{977841f1-f9b0-4417-bc28-6976382e69e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\rmdl">
+      <UniqueIdentifier>{c944f35c-47ce-457b-9db1-cf3f7c3ed24f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="vg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CommandLine.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rmdl\rmdl_121.cpp">
+      <Filter>Source Files\rmdl</Filter>
+    </ClCompile>
+    <ClCompile Include="rmdl\rmdl_8.cpp">
+      <Filter>Source Files\rmdl</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rmdl\studio.cpp">
+      <Filter>Source Files\rmdl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -35,13 +53,22 @@
     <ClInclude Include="structs.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="vg.h">
+    <ClInclude Include="versions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CommandLine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mdl\studio.h">
+      <Filter>Header Files\mdl</Filter>
+    </ClInclude>
+    <ClInclude Include="rmdl\studio_rmdl.h">
+      <Filter>Header Files\rmdl</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
