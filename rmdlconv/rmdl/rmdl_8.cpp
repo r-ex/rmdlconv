@@ -76,7 +76,7 @@ void CreateVGFile_v8(const std::string& filePath)
 
 					newMesh.stripsOffset = strips.size();
 					newMesh.indexOffset = indices.size();
-					newMesh.vertexOffset = numVertices;
+					newMesh.vertexOffset = numVertices * sizeof(VGVertex_t);
 					newMesh.externalWeightsOffset = numVertices;
 					newMesh.flags = 0x2005A41;
 
@@ -96,11 +96,13 @@ void CreateVGFile_v8(const std::string& filePath)
 						newMesh.indexCount += stripGroup->numIndices;
 						newMesh.externalWeightsCount += stripGroup->numVerts;
 
+						int stripOffset = strips.size();
 						strips.resize(strips.size() + stripGroup->numStrips);
-						std::memcpy(strips.data(), stripGroup->strip(0), stripGroup->numStrips * sizeof(StripHeader_t));
+						std::memcpy(strips.data() + stripOffset, stripGroup->strip(0), stripGroup->numStrips * sizeof(StripHeader_t));
 
+						int indicesOffset = indices.size();
 						indices.resize(indices.size() + stripGroup->numIndices);
-						std::memcpy(indices.data(), stripGroup->indices(), stripGroup->numIndices * sizeof(uint16_t));
+						std::memcpy(indices.data() + indicesOffset, stripGroup->indices(), stripGroup->numIndices * sizeof(uint16_t));
 					}
 
 					meshes.push_back(newMesh);
@@ -166,6 +168,7 @@ void CreateVGFile_v8(const std::string& filePath)
 		newLods.push_back(tempLod);
 
 	lods = newLods;
+
 
 	BinaryIO io;
 	io.open(ChangeExtension(filePath, "vg"), BinaryIOMode::Write);
