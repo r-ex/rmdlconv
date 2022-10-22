@@ -49,6 +49,7 @@ void CreateVGFile_v8(const std::string& filePath)
 	std::vector<uint16_t> indices;
 	std::vector<StripHeader_t> strips;
 	std::vector<VGVertex_t> vertices;
+	std::vector<mstudioboneweight_t> externalWeight;
 	std::vector<VGMesh> meshes;
 
 	for (int i = 0; i < vtx->numBodyParts; ++i)
@@ -76,6 +77,13 @@ void CreateVGFile_v8(const std::string& filePath)
 					newMesh.stripsOffset = strips.size();
 					newMesh.indexOffset = indices.size();
 					newMesh.vertexOffset = numVertices;
+					newMesh.externalWeightsOffset = numVertices;
+					newMesh.flags = 0x2005A41;
+
+					//newMesh.flags = 0;
+
+					//newMesh.flags += 0x1; // set unpacked pos flag
+					//newMesh.flags += 0x5000; // set packed weight flag
 
 					for (int m = 0; m < mesh->numStripGroups; ++m)
 					{
@@ -86,6 +94,7 @@ void CreateVGFile_v8(const std::string& filePath)
 						newMesh.vertexCount += stripGroup->numVerts;
 						newMesh.stripsCount += stripGroup->numStrips;
 						newMesh.indexCount += stripGroup->numIndices;
+						newMesh.externalWeightsCount += stripGroup->numVerts;
 
 						strips.resize(strips.size() + stripGroup->numStrips);
 						std::memcpy(strips.data(), stripGroup->strip(0), stripGroup->numStrips * sizeof(StripHeader_t));
@@ -109,7 +118,28 @@ void CreateVGFile_v8(const std::string& filePath)
 		newVert.m_vecPosition = vert->m_vecPosition;
 		newVert.m_vecTexCoord = vert->m_vecTexCoord;
 
+		// default weights (pretty sure this is just typical packing float into short)
+		newVert.m_packedWeights.BlendWeights[0] = (1 * 32767.5);
+		newVert.m_packedWeights.BlendWeights[1] = 0;
+
+		// set the bone(?) ids to 0 because we are using extended weights.
+		for (int j = 0; j < 4; j++)
+		{
+			newVert.m_packedWeights.BlendIds[j] = 0;
+		}
+
 		vertices.push_back(newVert);
+	}
+
+	for (int i = 0; i < vvd->numLODVertexes[0]; ++i)
+	{
+		mstudiovertex_t* vert = vvd->vertex(i);
+
+		mstudioboneweight_t newExternalWeight{};
+
+		newExternalWeight = vert->m_BoneWeights;
+
+		externalWeight.push_back(newExternalWeight);
 	}
 
 	BinaryIO io;
@@ -122,6 +152,7 @@ void CreateVGFile_v8(const std::string& filePath)
 	header.vertexCount = vertices.size() * sizeof(VGVertex_t);
 	header.lodCount = lods.size();
 	header.stripsCount = strips.size();
+	header.externalWeightsCount = externalWeight.size();
 
 	io.write(header);
 
@@ -136,6 +167,9 @@ void CreateVGFile_v8(const std::string& filePath)
 
 	header.lodOffset = io.tell();
 	io.getWriter()->write((char*)lods.data(), lods.size() * sizeof(ModelLODHeader_VG_t));
+
+	header.externalWeightsOffset = io.tell();
+	io.getWriter()->write((char*)externalWeight.data(), externalWeight.size() * sizeof(mstudioboneweight_t));
 
 	header.stripsOffset = io.tell();
 	io.getWriter()->write((char*)strips.data(), strips.size() * sizeof(StripHeader_t));
