@@ -142,6 +142,31 @@ void CreateVGFile_v8(const std::string& filePath)
 		externalWeight.push_back(newExternalWeight);
 	}
 
+	std::vector<ModelLODHeader_VG_t> newLods;
+
+	ModelLODHeader_VG_t tempLod{};
+	for (int i = 0; i < lods.size(); ++i)
+	{
+		if (lods[i].switchPoint != tempLod.switchPoint)
+		{
+			if(tempLod.meshCount > 0)
+				newLods.push_back(tempLod);
+
+			tempLod.meshIndex = tempLod.meshCount;
+			tempLod.switchPoint = lods[i].switchPoint;
+			tempLod.meshCount = 0;
+		}
+		if (lods[i].meshCount == 0)
+			continue;
+
+		tempLod.meshCount += lods[i].meshCount;
+	}
+
+	if (tempLod.meshCount > 0)
+		newLods.push_back(tempLod);
+
+	lods = newLods;
+
 	BinaryIO io;
 	io.open(ChangeExtension(filePath, "vg"), BinaryIOMode::Write);
 
