@@ -52,6 +52,8 @@ void CreateVGFile_v8(const std::string& filePath)
 	std::vector<mstudioboneweight_t> externalWeight;
 	std::vector<VGMesh> meshes;
 
+	std::vector<int> badVertices;
+
 	for (int i = 0; i < vtx->numBodyParts; ++i)
 	{
 		BodyPartHeader_t* bodyPart = vtx->bodyPart(i);
@@ -88,13 +90,29 @@ void CreateVGFile_v8(const std::string& filePath)
 					for (int m = 0; m < mesh->numStripGroups; ++m)
 					{
 						StripGroupHeader_t* stripGroup = mesh->stripGroup(m);
-
+						int prevTotalVerts = numVertices;
 						numVertices += stripGroup->numVerts;
 
 						newMesh.vertexCount += stripGroup->numVerts;
 						newMesh.stripsCount += stripGroup->numStrips;
 						newMesh.indexCount += stripGroup->numIndices;
 						newMesh.externalWeightsCount += stripGroup->numVerts;
+
+						int lastVertId = -1;
+						for (int v = 0; v < stripGroup->numVerts; ++v)
+						{
+							Vertex_t* vert = stripGroup->vert(v);
+
+							if (vert->origMeshVertID != lastVertId + 1)
+							{
+								for (int o = lastVertId + 1; o < vert->origMeshVertID; ++o)
+								{
+									badVertices.push_back(o + prevTotalVerts);
+								}
+							}
+
+							lastVertId = vert->origMeshVertID;
+						}
 
 						int stripOffset = strips.size();
 						strips.resize(strips.size() + stripGroup->numStrips);
@@ -131,6 +149,12 @@ void CreateVGFile_v8(const std::string& filePath)
 		}
 
 		vertices.push_back(newVert);
+	}
+
+	// remove unused vertices from vector
+	for (auto& it : badVertices)
+	{
+		vertices.erase(vertices.begin() + it);
 	}
 
 	for (int i = 0; i < vvd->numLODVertexes[0]; ++i)

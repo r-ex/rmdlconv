@@ -1,6 +1,20 @@
 #pragma once
 
 #pragma pack(push, 1)
+#define MAX_NUM_BONES_PER_VERT 3
+struct Vertex_t
+{
+	// these index into the mesh's vert[origMeshVertID]'s bones
+	unsigned char boneWeightIndex[MAX_NUM_BONES_PER_VERT];
+	unsigned char numBones;
+
+	unsigned short origMeshVertID;
+
+	// for sw skinned verts, these are indices into the global list of bones
+	// for hw skinned verts, these are hardware bone indices
+	char boneID[MAX_NUM_BONES_PER_VERT];
+};
+
 struct StripHeader_t
 {
 	int numIndices;
@@ -24,6 +38,8 @@ struct StripGroupHeader_t
 	// These are the arrays of all verts and indices for this mesh.  strips index into this.
 	int numVerts;
 	int vertOffset;
+
+	Vertex_t* vert( int n) { return reinterpret_cast<Vertex_t*>((char*)this + vertOffset) + n; }
 
 	int numIndices;
 	int indexOffset;
