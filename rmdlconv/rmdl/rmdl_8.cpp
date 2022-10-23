@@ -151,12 +151,6 @@ void CreateVGFile_v8(const std::string& filePath)
 		vertices.push_back(newVert);
 	}
 
-	// remove unused vertices from vector
-	for (auto& it : badVertices)
-	{
-		vertices.erase(vertices.begin() + it);
-	}
-
 	for (int i = 0; i < vvd->numLODVertexes[0]; ++i)
 	{
 		mstudiovertex_t* vert = vvd->vertex(i);
@@ -166,6 +160,13 @@ void CreateVGFile_v8(const std::string& filePath)
 		newExternalWeight = vert->m_BoneWeights;
 
 		externalWeight.push_back(newExternalWeight);
+	}
+
+	// remove unused vertices from vector
+	for (auto& it : badVertices)
+	{
+		vertices.erase(vertices.begin() + it);
+		externalWeight.erase(externalWeight.begin() + it);
 	}
 
 	std::vector<ModelLODHeader_VG_t> newLods;
