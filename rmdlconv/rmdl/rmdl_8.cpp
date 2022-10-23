@@ -205,6 +205,7 @@ void CreateVGFile_v8(const std::string& filePath)
 	header.lodCount = lods.size();
 	header.stripsCount = strips.size();
 	header.externalWeightsCount = externalWeight.size();
+	header.unknownCount = header.meshCount / header.lodCount;
 
 	io.write(header);
 
@@ -216,6 +217,10 @@ void CreateVGFile_v8(const std::string& filePath)
 	
 	header.vertexOffset = io.tell();
 	io.getWriter()->write((char*)vertices.data(), vertices.size() * sizeof(VGVertex_t));
+
+	char* unknownBuf = new char[header.unknownCount * 0x30] {};
+	header.unknownOffset = io.tell();
+	io.getWriter()->write((char*)unknownBuf, header.unknownCount * 0x30);
 
 	header.lodOffset = io.tell();
 	io.getWriter()->write((char*)lods.data(), lods.size() * sizeof(ModelLODHeader_VG_t));
