@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 
 	int mdlVersion = mdlIn.read<int>();
 
-	if (mdlVersion == 54)
+	//if (mdlVersion == 54)
 	{
 		// === RMDL -> RMDL ===
 
