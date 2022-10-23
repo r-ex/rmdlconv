@@ -231,6 +231,8 @@ void CreateVGFile_v8(const std::string& filePath)
 	header.stripsOffset = io.tell();
 	io.getWriter()->write((char*)strips.data(), strips.size() * sizeof(StripHeader_t));
 
+	header.dataSize = io.tell();
+
 	io.seek(0);
 	io.write(header);
 
