@@ -168,8 +168,16 @@ struct vertexFileHeader_t
 	int numFixups; // num of vertexFileFixup_t
 
 	int fixupTableStart; // offset from base to fixup table
-	int vertexDataStart; // offset from base to vertex block
 
+	// vvc
+	Vector2* uv(int i)
+	{
+		return reinterpret_cast<Vector2*>((char*)this + fixupTableStart) + i;
+	}
+
+	int vertexDataStart; // offset from base to vertex block
+	
+	// vvd
 	mstudiovertex_t* vertex(int i)
 	{
 		return reinterpret_cast<mstudiovertex_t*>((char*)this + vertexDataStart) + i;
@@ -177,7 +185,5 @@ struct vertexFileHeader_t
 
 	int tangentDataStart; // offset from base to tangent block
 };
-
-
 
 #pragma pack(pop)

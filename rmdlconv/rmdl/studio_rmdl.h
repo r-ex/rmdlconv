@@ -1,6 +1,97 @@
 #pragma once
 #include "structs.h"
 
+#define MAX_NUM_LODS 8
+
+struct mstudio_meshvertexdata_t
+{
+	int unk;
+
+	int numLODVertexes[MAX_NUM_LODS];
+};
+
+struct mstudiomesh_t_v54
+{
+	int material;
+
+	int modelindex;
+
+	int numvertices; // number of unique vertices/normals/texcoords
+	int vertexoffset; // vertex mstudiovertex_t
+
+	// Access thin/fat mesh vertex data (only one will return a non-NULL result)
+
+	int numflexes; // vertex animation
+	int flexindex;
+
+
+	// special codes for material operations
+	int materialtype;
+	int materialparam;
+
+	// a unique ordinal for this mesh
+	int meshid;
+
+	Vector3 center;
+
+	mstudio_meshvertexdata_t vertexdata;
+
+	int unk[2]; // these are suposed to be filled on load, however this isn't true??
+};
+
+struct mstudiomodel_t_v54
+{
+	char name[64];
+
+	int unkindex2; // goes to bones sometimes
+
+	// in v11 they start to overwrite this if it is just the default
+	int type;
+
+	float boundingradius;
+
+	int nummeshes;
+	int meshindex;
+
+	mstudiomesh_t_v54* mesh(int i)
+	{
+		return reinterpret_cast<mstudiomesh_t_v54*>((char*)this + meshindex) + i;
+	}
+
+	// cache purposes
+	int numvertices; // number of unique vertices/normals/texcoords
+	int vertexindex; // vertex Vector
+	int tangentsindex; // tangents Vector
+
+	int numattachments;
+	int attachmentindex;
+
+	// might be cut
+	int numeyeballs;
+	int eyeballindex;
+
+	//mstudio_modelvertexdata_t vertexdata;
+
+	// same as v53, except trimming the fat
+	int unk[4];
+
+	int unkindex;
+	int unkindex1;
+};
+
+struct mstudiobodyparts_t
+{
+	int sznameindex;
+	int nummodels;
+	int base;
+	int modelindex; // index into models array
+
+	mstudiomodel_t_v54* model(int i)
+	{
+		return reinterpret_cast<mstudiomodel_t_v54*>((char*)this + modelindex) + i;
+	}
+};
+
 // target studiohdr for use in season 3. compatible with v8->v12
 struct studiohdr_v54_t
 {
@@ -59,6 +150,11 @@ struct studiohdr_v54_t
 
 	int numbodyparts;
 	int bodypartindex;
+
+	mstudiobodyparts_t* bodypart(int i)
+	{
+		return reinterpret_cast<mstudiobodyparts_t*>((char*)this + bodypartindex) + i;
+	}
 
 	int numlocalattachments;
 	int localattachmentindex;

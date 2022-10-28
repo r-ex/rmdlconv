@@ -5,16 +5,34 @@
 #include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
 
+#include <map>
+
 
 void CreateVGFile_v8(const std::string& filePath)
 {
 	printf("creating VG file from v8 rmdl...\n");
-
+	;
+	std::string rmdlPath = ChangeExtension(filePath, "rmdl");
 	std::string vtxPath = ChangeExtension(filePath, "vtx");
 	std::string vvdPath = ChangeExtension(filePath, "vvd");
+	std::string vvcPath = ChangeExtension(filePath, "vvc");
 
 	if (!FILE_EXISTS(vtxPath) || !FILE_EXISTS(vvdPath))
-		Error("failed to convert vtx,vvd to VG. vtx and vvd files are required but could not be found");
+		Error("failed to convert vtx,vvd to VG. vtx and vvd files are required but could not be found \n");
+
+	if (FILE_EXISTS(vvcPath))
+		printf("%s", "vvc was there \n");
+
+	char* rmdlBuf = nullptr;
+	{
+		uintmax_t rmdlSize = GetFileSize(rmdlPath);
+
+		rmdlBuf = new char[rmdlSize];
+
+		std::ifstream ifs(rmdlPath, std::ios::in | std::ios::binary);
+
+		ifs.read(rmdlBuf, rmdlSize);
+	}
 
 	char* vtxBuf = nullptr;
 	{
@@ -38,6 +56,25 @@ void CreateVGFile_v8(const std::string& filePath)
 		ifs.read(vvdBuf, vvdSize);
 	}
 
+	vertexFileHeader_t* vvc = nullptr;
+
+	if (FILE_EXISTS(vvcPath))
+	{
+		char* vvcBuf = nullptr;
+		{
+			uintmax_t vvcSize = GetFileSize(vvcPath);
+
+			vvcBuf = new char[vvcSize];
+
+			std::ifstream ifs(vvcPath, std::ios::in | std::ios::binary);
+
+			ifs.read(vvcBuf, vvcSize);
+		}
+
+		vvc = reinterpret_cast<vertexFileHeader_t*>(vvcBuf);
+	}
+
+	studiohdr_v54_t* rmdl = reinterpret_cast<studiohdr_v54_t*>(rmdlBuf);
 	FileHeader_t* vtx = reinterpret_cast<FileHeader_t*>(vtxBuf);
 	vertexFileHeader_t* vvd = reinterpret_cast<vertexFileHeader_t*>(vvdBuf);
 
@@ -51,16 +88,43 @@ void CreateVGFile_v8(const std::string& filePath)
 	std::vector<VGVertex_t> vertices;
 	std::vector<mstudioboneweight_t> externalWeight;
 	std::vector<VGMesh> meshes;
+	//std::vector<mstudiomesh_t_v54*> rmdlMeshes;
+	std::vector<uint8_t> boneremaps;
+	std::map<uint8_t, uint8_t> boneMap;
+
+	int boneMapIdx = 0;
 
 	std::vector<int> badVertices;
+
+	/*for (int i = 0; i < rmdl->numbodyparts; ++i)
+	{
+		mstudiobodyparts_t* rmdlBodyPart = rmdl->bodypart(i);
+
+		for (int j = 0; j < rmdlBodyPart->nummodels; ++j)
+		{
+			mstudiomodel_t_v54* rmdlModel = rmdlBodyPart->model(j);
+
+			for (int k = 0; k < rmdlModel->nummeshes; k++)
+			{
+				mstudiomesh_t_v54* rmdlMesh = rmdlModel->mesh(k);
+
+				rmdlMeshes.push_back(rmdlMesh);
+			}
+
+		}
+	}*/
+
+	int vtxVertOffset = 0;
 
 	for (int i = 0; i < vtx->numBodyParts; ++i)
 	{
 		BodyPartHeader_t* bodyPart = vtx->bodyPart(i);
+		mstudiobodyparts_t* rmdlBodyPart = rmdl->bodypart(i);
 
 		for (int j = 0; j < bodyPart->numModels; ++j)
 		{
 			ModelHeader_t* model = bodyPart->model(j);
+			mstudiomodel_t_v54* rmdlModel = rmdlBodyPart->model(j);
 
 			for (int k = 0; k < model->numLODs; ++k)
 			{
@@ -73,6 +137,7 @@ void CreateVGFile_v8(const std::string& filePath)
 				for (int l = 0; l < lod->numMeshes; ++l)
 				{
 					MeshHeader_t* mesh = lod->mesh(l);
+					mstudiomesh_t_v54* rmdlMesh = rmdlModel->mesh(l);
 
 					VGMesh newMesh{};
 
@@ -82,6 +147,9 @@ void CreateVGFile_v8(const std::string& filePath)
 					newMesh.externalWeightsOffset = numVertices;
 					newMesh.flags = 0x2005A41;
 
+					//if (vvc)
+						//newMesh.flags += 0x200000000;
+
 					//newMesh.flags = 0;
 
 					//newMesh.flags += 0x1; // set unpacked pos flag
@@ -90,6 +158,8 @@ void CreateVGFile_v8(const std::string& filePath)
 					for (int m = 0; m < mesh->numStripGroups; ++m)
 					{
 						StripGroupHeader_t* stripGroup = mesh->stripGroup(m);
+						//mstudiomesh_t_v54* rmdlMesh = rmdlMeshes.at(m);
+
 						int prevTotalVerts = numVertices;
 						numVertices += stripGroup->numVerts;
 
@@ -101,17 +171,60 @@ void CreateVGFile_v8(const std::string& filePath)
 						int lastVertId = -1;
 						for (int v = 0; v < stripGroup->numVerts; ++v)
 						{
-							Vertex_t* vert = stripGroup->vert(v);
+							Vertex_t* vertVtx = stripGroup->vert(v);
 
-							if (vert->origMeshVertID != lastVertId + 1)
+							mstudiovertex_t* vertVvd = vvd->vertex(vtxVertOffset + vertVtx->origMeshVertID);
+
+							//printf("vertex %i \n", vtxVertOffset + vertVtx->origMeshVertID);
+
+							VGVertex_t newVert{};
+							newVert.m_packedNormal = PackNormal_UINT32(vertVvd->m_vecNormal);
+							newVert.m_vecPosition = vertVvd->m_vecPosition;
+							newVert.m_vecTexCoord = vertVvd->m_vecTexCoord;
+
+							for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
 							{
-								for (int o = lastVertId + 1; o < vert->origMeshVertID; ++o)
+								if (!boneMap.count(vertVvd->m_BoneWeights.bone[0]))
 								{
-									badVertices.push_back(o + prevTotalVerts);
+									boneMap.insert(std::pair<uint8_t, uint8_t>(vertVvd->m_BoneWeights.bone[0], boneMapIdx));
+									printf("added bone %i at idx %i\n", boneMap.find(vertVvd->m_BoneWeights.bone[0])->first, boneMap.find(vertVvd->m_BoneWeights.bone[0])->second);
+									boneMapIdx++;
+
+									boneremaps.push_back(boneMap.find(vertVvd->m_BoneWeights.bone[0])->first);
 								}
 							}
 
-							lastVertId = vert->origMeshVertID;
+							// default weights (pretty sure this is just typical packing float into short)
+							newVert.m_packedWeights.BlendWeights[0] = (vertVvd->m_BoneWeights.weight[0] * 32767.5);
+							newVert.m_packedWeights.BlendWeights[1] = (vertVvd->m_BoneWeights.weight[1] * 32767.5);
+
+							newVert.m_packedWeights.BlendIds[0] = boneMap.find(vertVvd->m_BoneWeights.bone[0])->second;
+
+							// set the bone(?) ids to 0 because we are using extended weights.
+							for (int j = 1; j < 4; j++)
+							{
+								newVert.m_packedWeights.BlendIds[j] = 0;
+							}
+
+							vertices.push_back(newVert);
+
+							/*if (vvc)
+							{
+								Vector2* uvlayer = vvc->uv(i);
+
+								Vector2 newUV{};
+
+								newUV.x = uvlayer->x;
+								newUV.y = uvlayer->y;
+
+								//vertices.push_back(newUV);
+							}*/
+
+							mstudioboneweight_t newExternalWeight{};
+
+							newExternalWeight = vertVvd->m_BoneWeights;
+
+							externalWeight.push_back(newExternalWeight);
 						}
 
 						int stripOffset = strips.size();
@@ -123,50 +236,14 @@ void CreateVGFile_v8(const std::string& filePath)
 						std::memcpy(indices.data() + indicesOffset, stripGroup->indices(), stripGroup->numIndices * sizeof(uint16_t));
 					}
 
+					vtxVertOffset += rmdlMesh->numvertices;
+
+					//printf("mesh verts %i \n", rmdlMesh->numvertices);
+
 					meshes.push_back(newMesh);
 				}
 			}
 		}
-	}
-
-	for (int i = 0; i < vvd->numLODVertexes[0]; ++i)
-	{
-		mstudiovertex_t* vert = vvd->vertex(i);
-
-		VGVertex_t newVert{};
-		newVert.m_packedNormal = PackNormal_UINT32(vert->m_vecNormal);
-		newVert.m_vecPosition = vert->m_vecPosition;
-		newVert.m_vecTexCoord = vert->m_vecTexCoord;
-
-		// default weights (pretty sure this is just typical packing float into short)
-		newVert.m_packedWeights.BlendWeights[0] = (1 * 32767.5);
-		newVert.m_packedWeights.BlendWeights[1] = 0;
-
-		// set the bone(?) ids to 0 because we are using extended weights.
-		for (int j = 0; j < 4; j++)
-		{
-			newVert.m_packedWeights.BlendIds[j] = 0;
-		}
-
-		vertices.push_back(newVert);
-	}
-
-	for (int i = 0; i < vvd->numLODVertexes[0]; ++i)
-	{
-		mstudiovertex_t* vert = vvd->vertex(i);
-
-		mstudioboneweight_t newExternalWeight{};
-
-		newExternalWeight = vert->m_BoneWeights;
-
-		externalWeight.push_back(newExternalWeight);
-	}
-
-	// remove unused vertices from vector
-	for (auto& it : badVertices)
-	{
-		vertices.erase(vertices.begin() + it);
-		externalWeight.erase(externalWeight.begin() + it);
 	}
 
 	std::vector<ModelLODHeader_VG_t> newLods;
@@ -207,8 +284,12 @@ void CreateVGFile_v8(const std::string& filePath)
 	header.stripsCount = strips.size();
 	header.externalWeightsCount = externalWeight.size();
 	header.unknownCount = header.meshCount / header.lodCount;
+	header.boneRemapCount = boneremaps.size();
 
 	io.write(header);
+
+	header.boneRemapOffset = io.tell();
+	io.getWriter()->write((char*)boneremaps.data(), boneremaps.size() * sizeof(uint8_t));
 
 	header.meshOffset = io.tell();
 	io.getWriter()->write((char*)meshes.data(), meshes.size() * sizeof(VGMesh));
