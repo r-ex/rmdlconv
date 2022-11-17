@@ -145,7 +145,7 @@ void CreateVGFile_v8(const std::string& filePath)
 					newMesh.indexOffset = indices.size();
 					newMesh.vertexOffset = numVertices * sizeof(VGVertex_t);
 					newMesh.externalWeightsOffset = numVertices;
-					newMesh.flags = 0x2005A41;
+					newMesh.flags = 0x2005A42;
 
 					//if (vvc)
 						//newMesh.flags += 0x200000000;
@@ -179,7 +179,8 @@ void CreateVGFile_v8(const std::string& filePath)
 
 							VGVertex_t newVert{};
 							newVert.m_packedNormal = PackNormal_UINT32(vertVvd->m_vecNormal);
-							newVert.m_vecPosition = vertVvd->m_vecPosition;
+							newVert.m_vecPositionPacked = PackPos_UINT64(vertVvd->m_vecPosition);
+							//newVert.m_vecPosition = vertVvd->m_vecPosition;
 							newVert.m_vecTexCoord = vertVvd->m_vecTexCoord;
 
 							for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)

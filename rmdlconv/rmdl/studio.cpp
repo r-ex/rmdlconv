@@ -48,3 +48,14 @@ uint32_t PackNormal_UINT32(float v1, float v2, float v3)
 
 	return (droppedComponent << 29) + (sign << 28) + (v91 << 19) + (v90 << (19 - 9));
 }
+
+Vector64 PackPos_UINT64(Vector3 vec)
+{
+	Vector64 pos;
+
+	pos.x = ((vec.x + 1024.0) / 0.0009765625);
+	pos.y = ((vec.y + 1024.0) / 0.0009765625);
+	pos.z = ((vec.z + 2048.0) / 0.0009765625);
+
+	return pos;
+}

@@ -538,13 +538,23 @@ struct PackedVertexWeights
 	char BlendIds[4];
 };
 
+struct Vector64
+{
+	uint64_t x : 21;
+	uint64_t y : 21;
+	uint64_t z : 22;
+};
+
+#pragma pack(push, 1)
 struct VGVertex_t
 {
-	Vector3 m_vecPosition; // this needs to be made into packed pos
+	Vector64 m_vecPositionPacked;
+
 	PackedVertexWeights m_packedWeights;
 	uint32_t m_packedNormal;
 	Vector2 m_vecTexCoord;
 };
+#pragma pack(pop)
 
 struct VGMesh
 {
@@ -577,3 +587,6 @@ struct ModelLODHeader_VG_t
 
 uint32_t PackNormal_UINT32(float v1, float v2, float v3);
 uint32_t PackNormal_UINT32(Vector3 vec);
+
+Vector64 PackPos_UINT64(Vector3 vec);
+
