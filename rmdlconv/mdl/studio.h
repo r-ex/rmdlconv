@@ -2,6 +2,8 @@
 
 #pragma pack(push, 1)
 #define MAX_NUM_BONES_PER_VERT 3
+#define MAX_NUM_LODS 8
+
 struct Vertex_t
 {
 	// these index into the mesh's vert[origMeshVertID]'s bones
@@ -140,12 +142,24 @@ struct FileHeader_t
 	}
 };
 
+struct mstudiopackedweight_t
+{
+	short weight[3];
+
+	short pad; // what if
+
+	int externalweightindex;
+};
+
 struct mstudioboneweight_t
 {
-	float	weight[3];
-	char	bone[3];
-	char	numbones;
+	union {
+		mstudiopackedweight_t packedweight; // complex weights (models with 4 or more weights per vert)
+		float weight[MAX_NUM_BONES_PER_VERT]; // simple weights (models with 3 or less weights per vert)
+	} weights;
 
+	char bone[MAX_NUM_BONES_PER_VERT]; // set to unsigned so we can read it
+	byte numbones; // if all three above are filled and this does not equal 3 there are four(?) weights
 };
 
 struct mstudiovertex_t
@@ -163,27 +177,48 @@ struct vertexFileHeader_t
 	int checksum; // same as studiohdr_t, ensures sync
 
 	int numLODs; // num of valid lods
-	int numLODVertexes[8]; // num verts for desired root lod
+	int numLODVertexes[MAX_NUM_LODS]; // num verts for desired root lod
 
 	int numFixups; // num of vertexFileFixup_t
 
 	int fixupTableStart; // offset from base to fixup table
-
-	// vvc
-	Vector2* uv(int i)
-	{
-		return reinterpret_cast<Vector2*>((char*)this + fixupTableStart) + i;
-	}
-
 	int vertexDataStart; // offset from base to vertex block
 	
-	// vvd
 	mstudiovertex_t* vertex(int i)
 	{
 		return reinterpret_cast<mstudiovertex_t*>((char*)this + vertexDataStart) + i;
 	}
 
 	int tangentDataStart; // offset from base to tangent block
+
+	Vector4* tangent(int i)
+	{
+		return reinterpret_cast<Vector4*>((char*)this + tangentDataStart) + i;
+	}
+};
+
+struct vertexColorFileHeader_t
+{
+	int id; // MODEL_VERTEX_FILE_ID
+	int version; // MODEL_VERTEX_FILE_VERSION
+	int checksum; // same as studiohdr_t, ensures sync
+
+	int numLODs; // num of valid lods
+	int numLODVertexes[MAX_NUM_LODS]; // num verts for desired root lod
+
+	int colorDataStart;
+
+	VertexColor_t* color(int i)
+	{
+		return reinterpret_cast<VertexColor_t*>((char*)this + colorDataStart) + i;
+	}
+
+	int uv2DataStart;
+
+	Vector2* uv(int i)
+	{
+		return reinterpret_cast<Vector2*>((char*)this + uv2DataStart) + i;
+	}
 };
 
 #pragma pack(pop)

@@ -3,11 +3,23 @@
 
 #define MAX_NUM_LODS 8
 
-struct mstudio_meshvertexdata_t
-{
-	int unk;
+// studiohdr flags
+#define STUDIOHDR_FLAGS_COMPLEX_WEIGHTS		0x4000 // don't really know what to name this one
+#define STUDIOHDR_FLAGS_USES_VERTEX_COLOR	0x1000000 // model has/uses vertex color
+#define STUDIOHDR_FLAGS_USES_UV2			0x2000000 // model has/uses secondary uv layer
 
-	int numLODVertexes[MAX_NUM_LODS];
+// vg mesh flags
+#define VG_POSITION         0x1
+#define VG_PACKED_POSITION  0x2
+#define VG_VERTEX_COLOR     0x10 // see: STUDIOHDR_FLAGS_USES_VERTEX_COLOR
+#define VG_PACKED_WEIGHTS   0x5000
+#define VG_UV_LAYER2        0x200000000 // see: STUDIOHDR_FLAGS_USES_UV2
+
+struct mstudio_meshvertexloddata_t
+{
+	int modelvertexdataUnusedPad; // likely has none of the funny stuff because unused
+
+	int numLODVertexes[MAX_NUM_LODS]; // depreciated starting with rmdl v14(?)
 };
 
 struct mstudiomesh_t_v54
@@ -21,20 +33,19 @@ struct mstudiomesh_t_v54
 
 	// Access thin/fat mesh vertex data (only one will return a non-NULL result)
 
-	int numflexes; // vertex animation
-	int flexindex;
-
+	int deprecated_numflexes; // vertex animation
+	int deprecated_flexindex;
 
 	// special codes for material operations
-	int materialtype;
-	int materialparam;
+	int deprecated_materialtype;
+	int deprecated_materialparam;
 
 	// a unique ordinal for this mesh
 	int meshid;
 
 	Vector3 center;
 
-	mstudio_meshvertexdata_t vertexdata;
+	mstudio_meshvertexloddata_t vertexloddata;
 
 	int unk[2]; // these are suposed to be filled on load, however this isn't true??
 };
@@ -45,7 +56,6 @@ struct mstudiomodel_t_v54
 
 	int unkindex2; // goes to bones sometimes
 
-	// in v11 they start to overwrite this if it is just the default
 	int type;
 
 	float boundingradius;
@@ -66,17 +76,15 @@ struct mstudiomodel_t_v54
 	int numattachments;
 	int attachmentindex;
 
-	// might be cut
-	int numeyeballs;
-	int eyeballindex;
+	int deprecated_numeyeballs;
+	int deprecated_eyeballindex;
 
-	//mstudio_modelvertexdata_t vertexdata;
+	int pad[4];
 
-	// same as v53, except trimming the fat
-	int unk[4];
-
-	int unkindex;
-	int unkindex1;
+	int colorindex; // vertex color
+					// offset by colorindex number of bytes into vvc vertex colors
+	int uv2index; // vertex second uv map
+				  // offset by uv2index number of bytes into vvc secondary uv map
 };
 
 struct mstudiobodyparts_t
@@ -163,16 +171,16 @@ struct studiohdr_v54_t
 	int localnodeindex;
 	int localnodenameindex;
 
-	int numflexdesc;
-	int flexdescindex;
+	int numunknodes;
+	int unknodexindex;
 
-	int meshindex; // SubmeshLodsOffset, might just be a mess offset
+	int meshindex; // offset to model meshes
 
-	int numflexcontrollers;
-	int flexcontrollerindex;
+	int deprecated_numflexcontrollers;
+	int deprecated_flexcontrollerindex;
 
-	int numflexrules;
-	int flexruleindex;
+	int deprecated_numflexrules;
+	int deprecated_flexruleindex;
 
 	int numikchains;
 	int ikchainindex;
@@ -199,39 +207,39 @@ struct studiohdr_v54_t
 	int numincludemodels;
 	int includemodelindex;
 
-	int virtualModel;
+	int virtualModel; // set as int for our purposes
 
 	int bonetablebynameindex;
 
 	// if STUDIOHDR_FLAGS_CONSTANT_DIRECTIONAL_LIGHT_DOT is set,
 	// this value is used to calculate directional components of lighting 
 	// on static props
-	uint8_t constdirectionallightdot;
+	byte constdirectionallightdot;
 
 	// set during load of mdl data to track *desired* lod configuration (not actual)
 	// the *actual* clamped root lod is found in studiohwdata
 	// this is stored here as a global store to ensure the staged loading matches the rendering
-	uint8_t rootLOD;
+	byte rootLOD;
 
 	// set in the mdl data to specify that lod configuration should only allow first numAllowRootLODs
 	// to be set as root LOD:
 	//	numAllowedRootLODs = 0	means no restriction, any lod can be set as root lod.
 	//	numAllowedRootLODs = N	means that lod0 - lod(N-1) can be set as root lod, but not lodN or lower.
-	uint8_t numAllowedRootLODs;
+	byte numAllowedRootLODs;
 
-	uint8_t unused;
+	byte unused;
 
-	float fadedistance;
+	float fadeDistance;
 
 	float gathersize; // what. from r5r struct
 
-	int numunk_v54_early;
-	int unkindex_v54_early;
+	int deprecated_numflexcontrollerui;
+	int deprecated_flexcontrolleruiindex;
 
-	int unk_v54[2];
+	float flVertAnimFixedPointScale; // to be verified
+	int surfacepropLookup; // saved in the file
 
-	// this is in all shipped models, probably part of their asset bakery. it should be 0x2CC.
-	int mayaindex; // doesn't actually need to be written pretty sure, only four bytes when not present.
+	int sourceFilenameOffset; // doesn't actually need to be written pretty sure, only four bytes when not present.
 
 	int numsrcbonetransform;
 	int srcbonetransformindex;
@@ -240,14 +248,16 @@ struct studiohdr_v54_t
 
 	int linearboneindex;
 
-	int numboneflexdrivers; // unsure if that's what it is in apex
-	int boneflexdriverindex;
+	// related to jiggle boesn now
+	int m_nBoneFlexDriverCount; // unsure if that's what it is in apex
+	int m_nBoneFlexDriverIndex;
+	int unkindexflex;
 
-	int unk1_v54[7];
+	// aabb tree in here maybe? definitely unused
+	int unk1_v54[6];
 
-	// maybe this is for the string table since it always has one byte padding it?
-	// this is probably for some section I haven't seen or a string that hasn't been filled out.
-	int unkindex1; // byte before string table start?
+	// always "" or "Titan"
+	int unkstringindex;
 
 	// this is now used for combined files in rpak, vtx, vvd, and vvc are all combined while vphy is separate.
 	// the indexes are added to the offset in the rpak mdl_ header.
@@ -262,24 +272,26 @@ struct studiohdr_v54_t
 	int vvcsize;
 	int vphysize; // still used in models using vg
 
-	// unk2_v54[3] is the chunk after following unkindex2's chunk
-	int unk2_v54[3]; // the same four unks in v53 I think, the first index being unused now probably
+	// unused in apex
+	int unkmemberindex1;
+	int numunkmember1;
 
-	int unkindex3; // index to chunk after string block
+	// only seen on '_animated' suffixed models so far
+	int unkcount3;
+	int unkindex3;
 
-	Vector3 mins; // min/max for Something
+	// Per Tri Collision AABB size
+	Vector3 mins;
 	Vector3 maxs; // seem to be the same as hull size
 
 	int unk3_v54[3];
 
 	int unkindex4; // chunk before unkindex3 sometimes
 
-	int unk4_v54[3]; // same as unk3_v54_v121
+	short unk4_v54[2]; // same as unk3_v54_v121
 
-	//int vgindex; // 0tVG
-	//int unksize; // might be offset
-	//int unksize1; // might be offset
-
+	int weightindex;
+	int weightsize;
 };
 
 // data source struct for subversion 12.1
@@ -404,7 +416,7 @@ struct studiohdr_121_t
 	int unk_v54[2];
 
 	// asset bakery strings if it has any
-	int mayaindex;
+	int sourceFilenameOffset;
 
 	int numsrcbonetransform;
 	int srcbonetransformindex;
@@ -441,6 +453,29 @@ struct studiohdr_121_t
 	int unkindex4; // chunk before unkindex2 sometimes
 
 	int unk4_v54[3];
+};
+
+// used in vg as well
+struct mstudioexternalweight_t
+{
+	short weight;
+	short bone;
+};
+
+// file extension unknown
+struct vertexWeightFileHeader_t
+{
+	int checksum; // same as studiohdr_t, ensures sync
+	int version;
+
+	int numLODVertexes[MAX_NUM_LODS]; // maybe this but the others don't get filled?
+
+	int weightDataStart; // index into mstudioexternalboneweight_t array
+
+	mstudioexternalweight_t* weight(int i)
+	{
+		return reinterpret_cast<mstudioexternalweight_t*>((char*)this + weightDataStart) + i;
+	}
 };
 
 // VG
@@ -495,86 +530,97 @@ struct VGLodNew
 	uint64_t meshOffset;
 };
 
-struct VGHeader
+struct VertexGroupHeader_t
 {
 	int id = 0x47567430;		// 0x47567430	'0tVG'
-	uint32_t version = 1;	// 0x1
-	uint32_t unk;	    // Usually 0
-	uint32_t dataSize;	// Total size of data + header in starpak
+	int version = 1;	    // 0x1
+	int unk;	        // Usually 0
+	int dataSize;	// Total size of data + header in starpak
 
-	uint64_t boneRemapOffset; // offset to bone remap buffer
-	uint64_t boneRemapCount;  // number of "bone remaps" (size: 1)
+	__int64 boneStateChangeOffset; // offset to bone remap buffer
+	__int64 numBoneStateChanges;  // number of "bone remaps" (size: 1)
 
-	uint64_t meshOffset;   // offset to mesh buffer
-	uint64_t meshCount;    // number of meshes (size: 0x48)
+	__int64 meshOffset;   // offset to mesh buffer
+	__int64 numMeshes;    // number of meshes (size: 0x48)
 
-	uint64_t indexOffset;     // offset to index buffer
-	uint64_t indexCount;      // number of indices (size: 2 (uint16_t))
+	__int64 indexOffset;     // offset to index buffer
+	__int64 numIndices;      // number of indices (size: 2 (uint16_t))
 
-	uint64_t vertexOffset;    // offset to vertex buffer
-	uint64_t vertexCount;     // number of bytes in vertex buffer
+	__int64 vertOffset;    // offset to vertex buffer
+	__int64 numVerts;     // number of bytes in vertex buffer
 
-	uint64_t extendedWeightsOffset;   // offset to extended weights buffer
-	uint64_t extendedWeightsCount;    // number of bytes in extended weights buffer
+	__int64 externalWeightOffset;   // offset to extended weights buffer
+	__int64 externalWeightsSize;    // number of bytes in extended weights buffer
 
-	uint64_t unknownOffset;   // offset to buffer
-	uint64_t unknownCount;    // count (size: 0x30)
+	// there is one for every LOD mesh
+	// i.e, unknownCount == lod.meshCount for all LODs
+	__int64 unknownOffset;   // offset to buffer
+	__int64 numUnknown;    // count (size: 0x30)
 
-	uint64_t lodOffset;       // offset to LOD buffer
-	uint64_t lodCount;        // number of LODs (size: 0x8)
+	__int64 lodOffset;       // offset to LOD buffer
+	__int64 numLODs;        // number of LODs (size: 0x8)
 
-	uint64_t externalWeightsOffset;   // offset to external weights buffer
-	uint64_t externalWeightsCount;     // number of external weights (size: 0x10)
+	__int64 legacyWeightOffset;	// seems to be an offset into the "external weights" buffer for this mesh
+	__int64 numLegacyWeights;   // seems to be the number of "external weights" that this mesh uses
 
-	uint64_t stripsOffset;    // offset to strips buffer
-	uint64_t stripsCount;     // number of strips (size: 0x23)
+	__int64 stripOffset;    // offset to strips buffer
+	__int64 numStrips;     // number of strips (size: 0x23)
 
-	char unused[0x40];
+	int unused[16];
 };
 
-struct PackedVertexWeights
+struct mstudiopackedboneweight_t
 {
-	short BlendWeights[2];
-	char BlendIds[4];
-};
-
-struct Vector64
-{
-	uint64_t x : 21;
-	uint64_t y : 21;
-	uint64_t z : 22;
+	short weight[2]; // shouldn't be > 32767
+	char bone[3];
+	byte numbones; // number of bones - 1, number of extra 
 };
 
 #pragma pack(push, 1)
-struct VGVertex_t
+// full struct
+struct Vertex_VG_t
 {
+	Vector3 m_vecPosition;
 	Vector64 m_vecPositionPacked;
-
-	PackedVertexWeights m_packedWeights;
-	uint32_t m_packedNormal;
+	mstudiopackedboneweight_t m_BoneWeightsPacked;
+	uint32_t m_NormalTangentPacked;
+	VertexColor_t m_color;
 	Vector2 m_vecTexCoord;
+	Vector2 m_vecTexCoord2;
 };
 #pragma pack(pop)
 
-struct VGMesh
+struct MeshHeader_VG_t
 {
-	__int64 flags = 0x2005A42;	// mesh flags
-	int vertexOffset;			// start offset for this mesh's vertices
-	int vertexSize = sizeof(VGVertex_t); // number of bytes used from the vertex buffer
-	int vertexCount;				// number of vertices
-	int unk1;
-	int extendedWeightsOffset;	// start offset for this mesh's "extended weights"
-	int extendedWeightsSize;     // size or count of extended weights
-	int indexOffset;				// start offset for this mesh's "indices"
-	int indexCount;				// number of indices
-	int externalWeightsOffset;	// seems to be an offset into the "external weights" buffer for this mesh
-	int externalWeightsCount;    // seems to be the number of "external weights" that this mesh uses
-	int stripsOffset;			// Index into the strips structs
-	int stripsCount;
-	int Int15;
-	int Int16;
-	int Int17;
-	int Int18;
+	__int64 flags;	// mesh flags
+
+	int vertOffset;			// start offset for this mesh's vertices
+	int vertCacheSize;		    // number of bytes used from the vertex buffer
+	int numVerts;			// number of vertices
+
+	int unk1; // what even
+
+	int externalWeightOffset;	// start offset for this mesh's "extended weights"
+	int externalWeightSize;    // size or count of extended weights
+
+	int indexOffset;			// start offset for this mesh's "indices"
+	int numIndices;				// number of indices
+
+	int legacyWeightOffset;	// seems to be an offset into the "external weights" buffer for this mesh
+	int numLegacyWeights;   // seems to be the number of "external weights" that this mesh uses
+
+	int stripOffset;        // Index into the strips structs
+	int numStrips;
+
+	// might be stuff like topologies
+	int unk[4];
+
+	/*int numBoneStateChanges;
+	int boneStateChangeOffset;
+
+	// MDL Version 49 and up only
+	int numTopologyIndices;
+	int topologyOffset;*/
 };
 
 // slightly modified VG version of ModelLODHeader_t
@@ -585,8 +631,8 @@ struct ModelLODHeader_VG_t
 	float switchPoint;
 };
 
-uint32_t PackNormal_UINT32(float v1, float v2, float v3);
-uint32_t PackNormal_UINT32(Vector3 vec);
+uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4);
+uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 
 Vector64 PackPos_UINT64(Vector3 vec);
 

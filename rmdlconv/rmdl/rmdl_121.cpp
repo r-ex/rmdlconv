@@ -58,7 +58,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	std::unique_ptr<char[]> extendedWeightsBuf(new char[extendedWeightsBufSize]);
 	std::unique_ptr<char[]> externalWeightsBuf(new char[externalWeightsBufSize]);
 	std::unique_ptr<char[]> stripsBuf(new char[stripsBufSize]);
-	std::unique_ptr<char[]> meshBuf(new char[lodSubmeshCount * sizeof(VGMesh)]);
+	std::unique_ptr<char[]> meshBuf(new char[lodSubmeshCount * sizeof(MeshHeader_VG_t)]);
 
 	printf("VG: allocatedbuffers:\n");
 	printf(
@@ -93,21 +93,21 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 
 			VGMeshNew submeshInput = input.read<VGMeshNew>();
 
-			VGMesh submesh{};
+			MeshHeader_VG_t submesh{};
 
 			submesh.flags = submeshInput.flags;
-			submesh.vertexSize = (unsigned int)submeshInput.vertexSize;
-			submesh.vertexCount = (unsigned int)submeshInput.vertexCount;
-			submesh.indexCount = (unsigned int)submeshInput.indexPacked.Count;
-			submesh.extendedWeightsSize = (unsigned int)submeshInput.extendedWeightsCount;
-			submesh.externalWeightsCount = (unsigned int)submeshInput.externalWeightsCount;
-			submesh.stripsCount = (unsigned int)submeshInput.stripsCount;
+			submesh.vertCacheSize = (unsigned int)submeshInput.vertexSize;
+			submesh.numVerts = (unsigned int)submeshInput.vertexCount;
+			submesh.numIndices = (unsigned int)submeshInput.indexPacked.Count;
+			submesh.externalWeightSize = (unsigned int)submeshInput.extendedWeightsCount;
+			submesh.legacyWeightOffset = (unsigned int)submeshInput.externalWeightsCount;
+			submesh.numStrips = (unsigned int)submeshInput.stripsCount;
 
-			submesh.vertexOffset = (unsigned int)vertexBufSize;
+			submesh.vertOffset = (unsigned int)vertexBufSize;
 			submesh.indexOffset = (unsigned int)indexBufSize;
-			submesh.extendedWeightsOffset = (unsigned int)extendedWeightsBufSize;
-			submesh.externalWeightsOffset = (unsigned int)externalWeightsBufSize;
-			submesh.stripsOffset = (unsigned int)stripsBufSize / sizeof(StripHeader_t);
+			submesh.externalWeightOffset = (unsigned int)extendedWeightsBufSize;
+			submesh.legacyWeightOffset = (unsigned int)externalWeightsBufSize;
+			submesh.stripOffset = (unsigned int)stripsBufSize / sizeof(StripHeader_t);
 
 			submeshes.write(submesh);
 			
@@ -171,16 +171,16 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 		ifs.close();
 	}
 
-	VGHeader vgh{};
-	vgh.boneRemapCount = boneRemapCount;
-	vgh.meshCount = lodSubmeshCount;
-	vgh.indexCount = indexBufSize / 2;
-	vgh.vertexCount = vertexBufSize;
-	vgh.extendedWeightsCount = extendedWeightsBufSize;
-	vgh.lodCount = vghInput.lodCount;
-	vgh.unknownCount = vgh.lodCount / vgh.meshCount;
-	vgh.externalWeightsCount = externalWeightsBufSize / 0x10;
-	vgh.stripsCount = stripsBufSize / sizeof(StripHeader_t);
+	VertexGroupHeader_t vgh{};
+	vgh.numBoneStateChanges = boneRemapCount;
+	vgh.numMeshes = lodSubmeshCount;
+	vgh.numIndices = indexBufSize / 2;
+	vgh.numVerts = vertexBufSize;
+	vgh.externalWeightsSize = extendedWeightsBufSize;
+	vgh.numLODs = vghInput.lodCount;
+	vgh.numUnknown = vgh.numLODs / vgh.numMeshes;
+	vgh.legacyWeightOffset = externalWeightsBufSize / 0x10;
+	vgh.numStrips = stripsBufSize / sizeof(StripHeader_t);
 
 	BinaryIO out;
 
@@ -188,36 +188,36 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 
 	out.write(vgh);
 
-	vgh.boneRemapOffset = out.tell();
+	vgh.boneStateChangeOffset = out.tell();
 	if(boneRemapCount)
 		out.getWriter()->write(boneRemapBuf, boneRemapCount);
 
 	vgh.meshOffset = out.tell();
-	out.getWriter()->write(meshBuf.get(), lodSubmeshCount * sizeof(VGMesh));
+	out.getWriter()->write(meshBuf.get(), lodSubmeshCount * sizeof(MeshHeader_VG_t));
 
 	vgh.indexOffset = out.tell();
 	out.getWriter()->write(indexBuf.get(), indexBufSize);
 
-	vgh.vertexOffset = out.tell();
+	vgh.vertOffset = out.tell();
 	out.getWriter()->write(vertexBuf.get(), vertexBufSize);
 
-	vgh.extendedWeightsOffset = out.tell();
+	vgh.externalWeightOffset = out.tell();
 	out.getWriter()->write(extendedWeightsBuf.get(), extendedWeightsBufSize);
 
 	// if this data hasn't been retrieved from .rmdl, write it as null bytes
 	if(!unkDataBuf)
-		unkDataBuf = new char[vgh.unknownCount * 0x30]{};
+		unkDataBuf = new char[vgh.numUnknown * 0x30]{};
 
 	vgh.unknownOffset = out.tell();
-	out.getWriter()->write(unkDataBuf, vgh.unknownCount * 0x30);
+	out.getWriter()->write(unkDataBuf, vgh.numUnknown * 0x30);
 
 	vgh.lodOffset = out.tell();
 	out.getWriter()->write(lodBuf.get(), lodBufSize);
 
-	vgh.externalWeightsOffset = out.tell();
+	vgh.legacyWeightOffset = out.tell();
 	out.getWriter()->write(externalWeightsBuf.get(), externalWeightsBufSize);
 
-	vgh.stripsOffset = out.tell();
+	vgh.stripOffset = out.tell();
 	out.getWriter()->write(stripsBuf.get(), stripsBufSize);
 
 	vgh.dataSize = (unsigned int)out.tell();

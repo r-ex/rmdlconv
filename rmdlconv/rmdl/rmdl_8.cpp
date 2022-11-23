@@ -16,12 +16,10 @@ void CreateVGFile_v8(const std::string& filePath)
 	std::string vtxPath = ChangeExtension(filePath, "vtx");
 	std::string vvdPath = ChangeExtension(filePath, "vvd");
 	std::string vvcPath = ChangeExtension(filePath, "vvc");
+	std::string vvwPath = ChangeExtension(filePath, "vvw");
 
 	if (!FILE_EXISTS(vtxPath) || !FILE_EXISTS(vvdPath))
 		Error("failed to convert vtx,vvd to VG. vtx and vvd files are required but could not be found \n");
-
-	if (FILE_EXISTS(vvcPath))
-		printf("%s", "vvc was there \n");
 
 	char* rmdlBuf = nullptr;
 	{
@@ -56,7 +54,8 @@ void CreateVGFile_v8(const std::string& filePath)
 		ifs.read(vvdBuf, vvdSize);
 	}
 
-	vertexFileHeader_t* vvc = nullptr;
+	// vertex color and uv2 buffer
+	vertexColorFileHeader_t* vvc = nullptr;
 
 	if (FILE_EXISTS(vvcPath))
 	{
@@ -71,63 +70,71 @@ void CreateVGFile_v8(const std::string& filePath)
 			ifs.read(vvcBuf, vvcSize);
 		}
 
-		vvc = reinterpret_cast<vertexFileHeader_t*>(vvcBuf);
+		vvc = reinterpret_cast<vertexColorFileHeader_t*>(vvcBuf);
+	}
+
+	// extended weight buffer
+	vertexWeightFileHeader_t* vvw = nullptr;
+
+	if (FILE_EXISTS(vvwPath))
+	{
+		char* vvwBuf = nullptr;
+		{
+			uintmax_t vvwSize = GetFileSize(vvwPath);
+
+			vvwBuf = new char[vvwSize];
+
+			std::ifstream ifs(vvwPath, std::ios::in | std::ios::binary);
+
+			ifs.read(vvwBuf, vvwSize);
+		}
+
+		vvw = reinterpret_cast<vertexWeightFileHeader_t*>(vvwBuf);
 	}
 
 	studiohdr_v54_t* rmdl = reinterpret_cast<studiohdr_v54_t*>(rmdlBuf);
 	FileHeader_t* vtx = reinterpret_cast<FileHeader_t*>(vtxBuf);
 	vertexFileHeader_t* vvd = reinterpret_cast<vertexFileHeader_t*>(vvdBuf);
 
+	if ((rmdl->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR) || (rmdl->flags & STUDIOHDR_FLAGS_USES_UV2)  && !FILE_EXISTS(vvcPath))
+		Error("model requires 'vvc' file but could not be found \n");
+
+	if (!FILE_EXISTS(vvwPath) && (rmdl->flags & STUDIOHDR_FLAGS_COMPLEX_WEIGHTS))
+		Error("model requires 'vvw' file but could not be found \n");
+
 	int numVertices = 0;
 	int numMeshes = 0;
 	int numLODs = vtx->numLODs;
+	int vertCacheSize = 0;
 
 	std::vector<ModelLODHeader_VG_t> lods;
 	std::vector<uint16_t> indices;
 	std::vector<StripHeader_t> strips;
-	std::vector<VGVertex_t> vertices;
-	std::vector<mstudioboneweight_t> externalWeight;
-	std::vector<VGMesh> meshes;
-	//std::vector<mstudiomesh_t_v54*> rmdlMeshes;
-	std::vector<uint8_t> boneremaps;
+	std::vector<Vertex_VG_t> vertices;
+	std::vector<mstudioboneweight_t> legacyWeights; // we can't just use these so obviously a hold over from vvd
+	std::vector<mstudioexternalweight_t> externalWeights;
+	std::vector<MeshHeader_VG_t> meshes;
+	std::vector<uint8_t> BoneStates;
 	std::map<uint8_t, uint8_t> boneMap;
 
 	int boneMapIdx = 0;
-
-	std::vector<int> badVertices;
-
-	/*for (int i = 0; i < rmdl->numbodyparts; ++i)
-	{
-		mstudiobodyparts_t* rmdlBodyPart = rmdl->bodypart(i);
-
-		for (int j = 0; j < rmdlBodyPart->nummodels; ++j)
-		{
-			mstudiomodel_t_v54* rmdlModel = rmdlBodyPart->model(j);
-
-			for (int k = 0; k < rmdlModel->nummeshes; k++)
-			{
-				mstudiomesh_t_v54* rmdlMesh = rmdlModel->mesh(k);
-
-				rmdlMeshes.push_back(rmdlMesh);
-			}
-
-		}
-	}*/
-
+	short externalWeightIdx = 0;
 	int vtxVertOffset = 0;
 
-	for (int i = 0; i < vtx->numBodyParts; ++i)
+	for (int k = 0; k < vtx->numLODs; ++k)
 	{
-		BodyPartHeader_t* bodyPart = vtx->bodyPart(i);
-		mstudiobodyparts_t* rmdlBodyPart = rmdl->bodypart(i);
+		vtxVertOffset = 0;
 
-		for (int j = 0; j < bodyPart->numModels; ++j)
+		for (int i = 0; i < vtx->numBodyParts; ++i)
 		{
-			ModelHeader_t* model = bodyPart->model(j);
-			mstudiomodel_t_v54* rmdlModel = rmdlBodyPart->model(j);
+			BodyPartHeader_t* bodyPart = vtx->bodyPart(i);
+			mstudiobodyparts_t* rmdlBodyPart = rmdl->bodypart(i);
 
-			for (int k = 0; k < model->numLODs; ++k)
+			for (int j = 0; j < bodyPart->numModels; ++j)
 			{
+				ModelHeader_t* model = bodyPart->model(j);
+				mstudiomodel_t_v54* rmdlModel = rmdlBodyPart->model(j);
+
 				ModelLODHeader_t* lod = model->lod(k);
 
 				lods.push_back(ModelLODHeader_VG_t{ (short)numMeshes, (short)lod->numMeshes, lod->switchPoint });
@@ -136,24 +143,47 @@ void CreateVGFile_v8(const std::string& filePath)
 
 				for (int l = 0; l < lod->numMeshes; ++l)
 				{
+					vertCacheSize = 0;
+					externalWeightIdx = 0; // reset index for new mesh
+
 					MeshHeader_t* mesh = lod->mesh(l);
 					mstudiomesh_t_v54* rmdlMesh = rmdlModel->mesh(l);
 
-					VGMesh newMesh{};
+					MeshHeader_VG_t newMesh{};
 
-					newMesh.stripsOffset = strips.size();
+					newMesh.stripOffset = strips.size();
 					newMesh.indexOffset = indices.size();
-					newMesh.vertexOffset = numVertices * sizeof(VGVertex_t);
-					newMesh.externalWeightsOffset = numVertices;
-					newMesh.flags = 0x2005A42;
+					newMesh.externalWeightOffset = externalWeights.size() * sizeof(mstudioexternalweight_t);
+					newMesh.legacyWeightOffset = numVertices;
+					newMesh.flags = 0x2005A40; // hard coded packed weights and pos
 
-					//if (vvc)
-						//newMesh.flags += 0x200000000;
+					// ideally later we add an option because some models actually use unpacked pos in vg
+					newMesh.flags |= VG_PACKED_POSITION;
 
-					//newMesh.flags = 0;
+					if (newMesh.flags & VG_PACKED_POSITION)
+						vertCacheSize += sizeof(Vector64);
+					else
+						vertCacheSize += sizeof(Vector3);
+
+					vertCacheSize += sizeof(mstudiopackedboneweight_t) + sizeof(uint32_t) + sizeof(Vector2); // packed weight size, packed normal size, uv size
+
+					if (rmdl->flags & STUDIOHDR_FLAGS_USES_UV2)
+					{
+						newMesh.flags |= VG_UV_LAYER2;
+						vertCacheSize += sizeof(Vector2);
+					}
+
+					if (rmdl->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
+					{
+						newMesh.flags |= VG_VERTEX_COLOR;
+						vertCacheSize += sizeof(VertexColor_t);
+					}
 
 					//newMesh.flags += 0x1; // set unpacked pos flag
 					//newMesh.flags += 0x5000; // set packed weight flag
+
+					newMesh.vertCacheSize = vertCacheSize;
+					newMesh.vertOffset = numVertices * vertCacheSize;
 
 					for (int m = 0; m < mesh->numStripGroups; ++m)
 					{
@@ -163,69 +193,165 @@ void CreateVGFile_v8(const std::string& filePath)
 						int prevTotalVerts = numVertices;
 						numVertices += stripGroup->numVerts;
 
-						newMesh.vertexCount += stripGroup->numVerts;
-						newMesh.stripsCount += stripGroup->numStrips;
-						newMesh.indexCount += stripGroup->numIndices;
-						newMesh.externalWeightsCount += stripGroup->numVerts;
+						newMesh.numVerts += stripGroup->numVerts;
+						newMesh.numStrips += stripGroup->numStrips;
+						newMesh.numIndices += stripGroup->numIndices;
+						newMesh.numLegacyWeights += stripGroup->numVerts;
 
 						int lastVertId = -1;
 						for (int v = 0; v < stripGroup->numVerts; ++v)
 						{
 							Vertex_t* vertVtx = stripGroup->vert(v);
 
+
+
 							mstudiovertex_t* vertVvd = vvd->vertex(vtxVertOffset + vertVtx->origMeshVertID);
+							Vector4* tangentVvd = vvd->tangent(vtxVertOffset + vertVtx->origMeshVertID);
 
 							//printf("vertex %i \n", vtxVertOffset + vertVtx->origMeshVertID);
 
-							VGVertex_t newVert{};
-							newVert.m_packedNormal = PackNormal_UINT32(vertVvd->m_vecNormal);
+							Vector4 newTangent{};
+							newTangent.x = tangentVvd->x;
+							newTangent.y = tangentVvd->y;
+							newTangent.z = tangentVvd->z;
+							newTangent.w = tangentVvd->w;
+
+							Vertex_VG_t newVert{};
+							newVert.m_NormalTangentPacked = PackNormalTangent_UINT32(vertVvd->m_vecNormal, newTangent);
 							newVert.m_vecPositionPacked = PackPos_UINT64(vertVvd->m_vecPosition);
-							//newVert.m_vecPosition = vertVvd->m_vecPosition;
+							newVert.m_vecPosition = vertVvd->m_vecPosition;
 							newVert.m_vecTexCoord = vertVvd->m_vecTexCoord;
+
 
 							for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
 							{
-								if (!boneMap.count(vertVvd->m_BoneWeights.bone[0]))
+								if (n < 3 && !boneMap.count(vertVvd->m_BoneWeights.bone[n]))
 								{
-									boneMap.insert(std::pair<uint8_t, uint8_t>(vertVvd->m_BoneWeights.bone[0], boneMapIdx));
-									printf("added bone %i at idx %i\n", boneMap.find(vertVvd->m_BoneWeights.bone[0])->first, boneMap.find(vertVvd->m_BoneWeights.bone[0])->second);
+									boneMap.insert(std::pair<uint8_t, uint8_t>(vertVvd->m_BoneWeights.bone[n], boneMapIdx));
+									printf("added bone %i at idx %i\n", boneMap.find(vertVvd->m_BoneWeights.bone[n])->first, boneMap.find(vertVvd->m_BoneWeights.bone[n])->second);
 									boneMapIdx++;
 
-									boneremaps.push_back(boneMap.find(vertVvd->m_BoneWeights.bone[0])->first);
+									BoneStates.push_back(boneMap.find(vertVvd->m_BoneWeights.bone[n])->first);
+								}
+								else if (n >= 3) // don't try to read extended weights if below this amount, will cause issues
+								{
+									mstudioexternalweight_t* externalWeight = vvw->weight(vertVvd->m_BoneWeights.weights.packedweight.externalweightindex + (n - 3));
+
+									if (!boneMap.count(externalWeight->bone))
+									{
+										boneMap.insert(std::pair<uint8_t, uint8_t>(externalWeight->bone, boneMapIdx));
+										printf("added bone %i at idx %i\n", boneMap.find(externalWeight->bone)->first, boneMap.find(externalWeight->bone)->second);
+										boneMapIdx++;
+
+										BoneStates.push_back(boneMap.find(externalWeight->bone)->first);
+									}
 								}
 							}
 
-							// default weights (pretty sure this is just typical packing float into short)
-							newVert.m_packedWeights.BlendWeights[0] = (vertVvd->m_BoneWeights.weight[0] * 32767.5);
-							newVert.m_packedWeights.BlendWeights[1] = (vertVvd->m_BoneWeights.weight[1] * 32767.5);
+							// set the actual weights
+							if (rmdl->flags & STUDIOHDR_FLAGS_COMPLEX_WEIGHTS)
+							{								
+								// "complex" weights
+								newVert.m_BoneWeightsPacked.weight[1] = externalWeightIdx; // set this before so we can add for the next one
 
-							newVert.m_packedWeights.BlendIds[0] = boneMap.find(vertVvd->m_BoneWeights.bone[0])->second;
+								for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
+								{
+									// this causes the weird conversion artifact that normal vg has where verts with one weight have the same bone in two slots
+									// so obviously respawn is doing something similar
+									if (n == (vertVvd->m_BoneWeights.numbones - 1))
+									{
+										if (n > 0 && n < 3)
+										{
+											newVert.m_BoneWeightsPacked.bone[1] = boneMap.find(vertVvd->m_BoneWeights.bone[n])->second;
+										}
+										else if (n > 2)
+										{
+											mstudioexternalweight_t* vvwWeight = vvw->weight(vertVvd->m_BoneWeights.weights.packedweight.externalweightindex + (n - 3)); // subtract three to get the real idx
 
-							// set the bone(?) ids to 0 because we are using extended weights.
-							for (int j = 1; j < 4; j++)
+											newVert.m_BoneWeightsPacked.bone[1] = boneMap.find(vvwWeight->bone)->second; // change this to the bone remap
+										}
+									}
+									else
+									{
+										if (n > 0 && n < 3) // we have to "build" this external weight so we do funny thing
+										{
+											mstudioexternalweight_t newExternalWeight{};
+
+											newExternalWeight.weight = vertVvd->m_BoneWeights.weights.packedweight.weight[n];
+											newExternalWeight.bone = boneMap.find(vertVvd->m_BoneWeights.bone[n])->second;
+
+											externalWeights.push_back(newExternalWeight);
+
+											externalWeightIdx++;
+										}
+										else if (n > 2)
+										{
+											mstudioexternalweight_t* vvwWeight = vvw->weight(vertVvd->m_BoneWeights.weights.packedweight.externalweightindex + (n - 3));
+
+											mstudioexternalweight_t newExternalWeight{};
+
+											newExternalWeight.weight = vvwWeight->weight;
+											newExternalWeight.bone = boneMap.find(vvwWeight->bone)->second; // change this to the boen remap
+
+											externalWeights.push_back(newExternalWeight);
+
+											externalWeightIdx++;
+										}
+									}
+								}
+
+								// first slot is fixed, 2nd bone id will always be the last weight, with the weight value dropped
+								newVert.m_BoneWeightsPacked.weight[0] = (vertVvd->m_BoneWeights.weights.packedweight.weight[0]);
+								newVert.m_BoneWeightsPacked.bone[0] = boneMap.find(vertVvd->m_BoneWeights.bone[0])->second;
+
+								newVert.m_BoneWeightsPacked.numbones = (vertVvd->m_BoneWeights.numbones - 1);
+							}
+							else
 							{
-								newVert.m_packedWeights.BlendIds[j] = 0;
+								// "simple" weights
+								// use vvd bone count instead of previously set as it should never be funky
+								for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
+								{
+									// don't set weight for third because it gets dropped
+									// third weight is gotten by subtracting the weights that were not dropped from 1.0f
+									if (n < 2)
+									{
+										newVert.m_BoneWeightsPacked.weight[n] = (vertVvd->m_BoneWeights.weights.weight[n] * 32767.0); // "pack" float into short, weight will always be <= 1.0f
+									}
+										
+									newVert.m_BoneWeightsPacked.bone[n] = boneMap.find(vertVvd->m_BoneWeights.bone[n])->second;
+								}
+
+								newVert.m_BoneWeightsPacked.numbones = (vertVvd->m_BoneWeights.numbones - 1);
 							}
 
-							vertices.push_back(newVert);
+							mstudioboneweight_t newLegacyWeight{};
 
-							/*if (vvc)
+							newLegacyWeight = vertVvd->m_BoneWeights;
+
+							legacyWeights.push_back(newLegacyWeight);
+
+
+							// check header flags so we don't pull color or uv2 when we don't want it
+							if (rmdl->flags & STUDIOHDR_FLAGS_USES_UV2)
 							{
 								Vector2* uvlayer = vvc->uv(i);
 
-								Vector2 newUV{};
+								newVert.m_vecTexCoord2.x = uvlayer->x;
+								newVert.m_vecTexCoord2.y = uvlayer->y;
+							}
 
-								newUV.x = uvlayer->x;
-								newUV.y = uvlayer->y;
+							if (rmdl->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
+							{
+								VertexColor_t* color = vvc->color(i);
 
-								//vertices.push_back(newUV);
-							}*/
+								newVert.m_color.r = color->r;
+								newVert.m_color.g = color->g;
+								newVert.m_color.b = color->b;
+								newVert.m_color.a = color->a;
+							}
 
-							mstudioboneweight_t newExternalWeight{};
-
-							newExternalWeight = vertVvd->m_BoneWeights;
-
-							externalWeight.push_back(newExternalWeight);
+							vertices.push_back(newVert);
 						}
 
 						int stripOffset = strips.size();
@@ -238,6 +364,14 @@ void CreateVGFile_v8(const std::string& filePath)
 					}
 
 					vtxVertOffset += rmdlMesh->numvertices;
+
+					newMesh.externalWeightSize = externalWeightIdx * sizeof(mstudioexternalweight_t);
+
+					if (newMesh.numVerts == 0)
+					{
+						newMesh.vertCacheSize = 0;
+						newMesh.flags = 0x0;
+					}
 
 					//printf("mesh verts %i \n", rmdlMesh->numvertices);
 
@@ -270,48 +404,78 @@ void CreateVGFile_v8(const std::string& filePath)
 	if (tempLod.meshCount > 0)
 		newLods.push_back(tempLod);
 
+	// cycle through lods and set correct mesh index
+	for (int i = 0; i < newLods.size(); i++)
+	{
+		newLods.at(i).meshIndex = (meshes.size() / newLods.size()) * i;
+	}
+
 	lods = newLods;
 
 
 	BinaryIO io;
 	io.open(ChangeExtension(filePath, "vg"), BinaryIOMode::Write);
 
-	VGHeader header{};
+	VertexGroupHeader_t header{};
 
-	header.meshCount = meshes.size();
-	header.indexCount = indices.size();
-	header.vertexCount = vertices.size() * sizeof(VGVertex_t);
-	header.lodCount = lods.size();
-	header.stripsCount = strips.size();
-	header.externalWeightsCount = externalWeight.size();
-	header.unknownCount = header.meshCount / header.lodCount;
-	header.boneRemapCount = boneremaps.size();
+	header.numMeshes = meshes.size();
+	header.numIndices = indices.size();
+	header.numVerts = vertices.size() * vertCacheSize;
+	header.numLODs = lods.size();
+	header.numStrips = strips.size();
+	header.externalWeightsSize = externalWeights.size() * sizeof(mstudioexternalweight_t);
+	header.numLegacyWeights = legacyWeights.size();
+	header.numUnknown = header.numMeshes / header.numLODs;
+	header.numBoneStateChanges = BoneStates.size();
 
 	io.write(header);
 
-	header.boneRemapOffset = io.tell();
-	io.getWriter()->write((char*)boneremaps.data(), boneremaps.size() * sizeof(uint8_t));
+	header.boneStateChangeOffset = io.tell();
+	io.getWriter()->write((char*)BoneStates.data(), BoneStates.size() * sizeof(uint8_t));
 
 	header.meshOffset = io.tell();
-	io.getWriter()->write((char*)meshes.data(), meshes.size() * sizeof(VGMesh));
+	io.getWriter()->write((char*)meshes.data(), meshes.size() * sizeof(MeshHeader_VG_t));
 	
 	header.indexOffset = io.tell();
 	io.getWriter()->write((char*)indices.data(), indices.size() * sizeof(uint16_t));
 	
-	header.vertexOffset = io.tell();
-	io.getWriter()->write((char*)vertices.data(), vertices.size() * sizeof(VGVertex_t));
+	header.vertOffset = io.tell();
+	// write vertcies based on flags so we can have vvc stuff, and potentially other flag based stuff in the future
+	for (int i = 0; i < vertices.size(); i++)
+	{
+		Vertex_VG_t vertice = vertices.at(i);
 
-	char* unknownBuf = new char[header.unknownCount * 0x30] {};
+		if (meshes[0].flags & VG_PACKED_POSITION)
+			io.getWriter()->write((char*)&vertice.m_vecPositionPacked, sizeof(Vector64));
+		else
+			io.getWriter()->write((char*)&vertice.m_vecPosition, sizeof(Vector3));
+
+		io.getWriter()->write((char*)&vertice.m_BoneWeightsPacked, sizeof(mstudiopackedboneweight_t));
+		io.getWriter()->write((char*)&vertice.m_NormalTangentPacked, sizeof(uint32_t));
+
+		if (rmdl->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
+			io.getWriter()->write((char*)&vertice.m_color, sizeof(VertexColor_t));
+
+		io.getWriter()->write((char*)&vertice.m_vecTexCoord, sizeof(Vector2));
+
+		if (rmdl->flags & STUDIOHDR_FLAGS_USES_UV2)
+			io.getWriter()->write((char*)&vertice.m_vecTexCoord2, sizeof(Vector2));
+	}
+
+	header.externalWeightOffset = io.tell();
+	io.getWriter()->write((char*)externalWeights.data(), externalWeights.size() * sizeof(mstudioexternalweight_t));
+
+	char* unknownBuf = new char[header.numUnknown * 0x30] {};
 	header.unknownOffset = io.tell();
-	io.getWriter()->write((char*)unknownBuf, header.unknownCount * 0x30);
+	io.getWriter()->write((char*)unknownBuf, header.numUnknown * 0x30);
 
 	header.lodOffset = io.tell();
 	io.getWriter()->write((char*)lods.data(), lods.size() * sizeof(ModelLODHeader_VG_t));
 
-	header.externalWeightsOffset = io.tell();
-	io.getWriter()->write((char*)externalWeight.data(), externalWeight.size() * sizeof(mstudioboneweight_t));
+	header.legacyWeightOffset = io.tell();
+	io.getWriter()->write((char*)legacyWeights.data(), legacyWeights.size() * sizeof(mstudioboneweight_t));
 
-	header.stripsOffset = io.tell();
+	header.stripOffset = io.tell();
 	io.getWriter()->write((char*)strips.data(), strips.size() * sizeof(StripHeader_t));
 
 	header.dataSize = io.tell();
