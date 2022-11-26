@@ -5,6 +5,14 @@
 #include "mdl/studio.h"
 #include "BinaryIO.h"
 
+/*
+	Type:    RMDL
+	Version: 12.1
+	Game:    Apex Legends Season 7
+
+	Files: .rmdl, .vg
+*/
+
 void ConvertVGData_12_1(char* buf, const std::string& filePath)
 {
 	std::filesystem::path path(filePath);
@@ -140,18 +148,18 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 
 	char* unkDataBuf = nullptr;
 
-	if (std::filesystem::exists(rmdlPath) && GetFileSize(rmdlPath) > sizeof(studiohdr_121_t))
+	if (std::filesystem::exists(rmdlPath) && GetFileSize(rmdlPath) > sizeof(r5::v121::studiohdr_t))
 	{
 		// grab bone remaps from rmdl
 		std::ifstream ifs(rmdlPath, std::ios::in | std::ios::binary);
 
-		studiohdr_121_t hdr;
+		r5::v121::studiohdr_t hdr;
 
 		ifs.read((char*)&hdr, sizeof(hdr));
 
 		if (hdr.numboneremaps > 0)
 		{
-			ifs.seekg(offsetof(studiohdr_121_t, boneremapindex) + hdr.boneremapindex, std::ios::beg);
+			ifs.seekg(offsetof(r5::v121::studiohdr_t, boneremapindex) + hdr.boneremapindex, std::ios::beg);
 
 			boneRemapCount = hdr.numboneremaps;
 
@@ -161,7 +169,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 
 		if (hdr.numunk1_v121 > 0)
 		{
-			ifs.seekg(offsetof(studiohdr_121_t, unkindex1_v121) + hdr.unkindex1_v121, std::ios::beg);
+			ifs.seekg(offsetof(r5::v121::studiohdr_t, unkindex1_v121) + hdr.unkindex1_v121, std::ios::beg);
 
 			unkDataBuf = new char[hdr.numunk1_v121 * 0x30];
 			ifs.read(unkDataBuf, hdr.numunk1_v121 * 0x30);

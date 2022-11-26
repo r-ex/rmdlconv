@@ -100,360 +100,369 @@ struct mstudiobodyparts_t
 	}
 };
 
-// target studiohdr for use in season 3. compatible with v8->v12
-struct studiohdr_v54_t
+namespace r5 // apex legends
 {
-	int id;          // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
-	int version;     // Format version number, such as 48 (0x30,0x00,0x00,0x00)
-	int checksum;    // This has to be the same in the phy and vtx files to load!
-	int sznameindex; // This has been moved from studiohdr2 to the front of the main header.
-	char name[64];   // The internal name of the model, padding with null bytes.
-	int length;      // Data size of MDL file in bytes.
-
-	Vector3 eyeposition;	// ideal eye position
-
-	Vector3 illumposition;	// illumination center
-
-	Vector3 hull_min;		// ideal movement hull size
-	Vector3 hull_max;
-
-	Vector3 view_bbmin;		// clipping bounding box
-	Vector3 view_bbmax;
-
-	int flags;
-
-	int numbones; // bones
-	int boneindex;
-
-	int numbonecontrollers; // bone controllers
-	int bonecontrollerindex;
-
-	int numhitboxsets;
-	int hitboxsetindex;
-
-	int numlocalanim;   // animations/poses
-	int localanimindex; // animation descriptions
-
-	int numlocalseq; // sequences
-	int	localseqindex;
-
-	int activitylistversion; // initialization flag - have the sequences been indexed?
-
-	// mstudiotexture_t
-	// short rpak path
-	// raw textures
-	int materialtypesindex;
-	int numtextures; // the material limit exceeds 128, probably 256.
-	int textureindex;
-
-	// this should always only be one, unless using vmts.
-	// raw textures search paths
-	int numcdtextures;
-	int cdtextureindex;
-
-	// replaceable textures tables
-	int numskinref;
-	int numskinfamilies;
-	int skinindex;
-
-	int numbodyparts;
-	int bodypartindex;
-
-	mstudiobodyparts_t* bodypart(int i)
+	namespace v8
 	{
-		return reinterpret_cast<mstudiobodyparts_t*>((char*)this + bodypartindex) + i;
+		// target studiohdr for use in season 3. compatible with v8->v12
+		struct studiohdr_t
+		{
+			int id;          // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
+			int version;     // Format version number, such as 48 (0x30,0x00,0x00,0x00)
+			int checksum;    // This has to be the same in the phy and vtx files to load!
+			int sznameindex; // This has been moved from studiohdr2 to the front of the main header.
+			char name[64];   // The internal name of the model, padding with null bytes.
+			int length;      // Data size of MDL file in bytes.
+
+			Vector3 eyeposition;	// ideal eye position
+
+			Vector3 illumposition;	// illumination center
+
+			Vector3 hull_min;		// ideal movement hull size
+			Vector3 hull_max;
+
+			Vector3 view_bbmin;		// clipping bounding box
+			Vector3 view_bbmax;
+
+			int flags;
+
+			int numbones; // bones
+			int boneindex;
+
+			int numbonecontrollers; // bone controllers
+			int bonecontrollerindex;
+
+			int numhitboxsets;
+			int hitboxsetindex;
+
+			int numlocalanim;   // animations/poses
+			int localanimindex; // animation descriptions
+
+			int numlocalseq; // sequences
+			int	localseqindex;
+
+			int activitylistversion; // initialization flag - have the sequences been indexed?
+
+			// mstudiotexture_t
+			// short rpak path
+			// raw textures
+			int materialtypesindex;
+			int numtextures; // the material limit exceeds 128, probably 256.
+			int textureindex;
+
+			// this should always only be one, unless using vmts.
+			// raw textures search paths
+			int numcdtextures;
+			int cdtextureindex;
+
+			// replaceable textures tables
+			int numskinref;
+			int numskinfamilies;
+			int skinindex;
+
+			int numbodyparts;
+			int bodypartindex;
+
+			mstudiobodyparts_t* bodypart(int i)
+			{
+				return reinterpret_cast<mstudiobodyparts_t*>((char*)this + bodypartindex) + i;
+			}
+
+			int numlocalattachments;
+			int localattachmentindex;
+
+			int numlocalnodes;
+			int localnodeindex;
+			int localnodenameindex;
+
+			int numunknodes;
+			int unknodexindex;
+
+			int meshindex; // offset to model meshes
+
+			int deprecated_numflexcontrollers;
+			int deprecated_flexcontrollerindex;
+
+			int deprecated_numflexrules;
+			int deprecated_flexruleindex;
+
+			int numikchains;
+			int ikchainindex;
+
+			// this is rui meshes
+			int numruimeshes;
+			int ruimeshindex;
+
+			int numlocalposeparameters;
+			int localposeparamindex;
+
+			int surfacepropindex;
+
+			int keyvalueindex;
+			int keyvaluesize;
+
+			int numlocalikautoplaylocks;
+			int localikautoplaylockindex;
+
+			float mass;
+			int contents;
+
+			// unused for packed models
+			int numincludemodels;
+			int includemodelindex;
+
+			int virtualModel; // set as int for our purposes
+
+			int bonetablebynameindex;
+
+			// if STUDIOHDR_FLAGS_CONSTANT_DIRECTIONAL_LIGHT_DOT is set,
+			// this value is used to calculate directional components of lighting 
+			// on static props
+			byte constdirectionallightdot;
+
+			// set during load of mdl data to track *desired* lod configuration (not actual)
+			// the *actual* clamped root lod is found in studiohwdata
+			// this is stored here as a global store to ensure the staged loading matches the rendering
+			byte rootLOD;
+
+			// set in the mdl data to specify that lod configuration should only allow first numAllowRootLODs
+			// to be set as root LOD:
+			//	numAllowedRootLODs = 0	means no restriction, any lod can be set as root lod.
+			//	numAllowedRootLODs = N	means that lod0 - lod(N-1) can be set as root lod, but not lodN or lower.
+			byte numAllowedRootLODs;
+
+			byte unused;
+
+			float fadeDistance;
+
+			float gathersize; // what. from r5r struct
+
+			int deprecated_numflexcontrollerui;
+			int deprecated_flexcontrolleruiindex;
+
+			float flVertAnimFixedPointScale; // to be verified
+			int surfacepropLookup; // saved in the file
+
+			int sourceFilenameOffset; // doesn't actually need to be written pretty sure, only four bytes when not present.
+
+			int numsrcbonetransform;
+			int srcbonetransformindex;
+
+			int	illumpositionattachmentindex;
+
+			int linearboneindex;
+
+			// related to jiggle boesn now
+			int m_nBoneFlexDriverCount; // unsure if that's what it is in apex
+			int m_nBoneFlexDriverIndex;
+			int unkindexflex;
+
+			// aabb tree in here maybe? definitely unused
+			int unk1_v54[6];
+
+			// always "" or "Titan"
+			int unkstringindex;
+
+			// this is now used for combined files in rpak, vtx, vvd, and vvc are all combined while vphy is separate.
+			// the indexes are added to the offset in the rpak mdl_ header.
+			// vphy isn't vphy, looks like a heavily modified vphy.
+			int vtxindex; // VTX
+			int vvdindex; // VVD / IDSV
+			int vvcindex; // VVC / IDCV 
+			int vphyindex; // VPHY / IVPS
+
+			int vtxsize;
+			int vvdsize;
+			int vvcsize;
+			int vphysize; // still used in models using vg
+
+			// unused in apex
+			int unkmemberindex1;
+			int numunkmember1;
+
+			// only seen on '_animated' suffixed models so far
+			int unkcount3;
+			int unkindex3;
+
+			// Per Tri Collision AABB size
+			Vector3 mins;
+			Vector3 maxs; // seem to be the same as hull size
+
+			int unk3_v54[3];
+
+			int unkindex4; // chunk before unkindex3 sometimes
+
+			short unk4_v54[2]; // same as unk3_v54_v121
+
+			int weightindex;
+			int weightsize;
+		};
 	}
 
-	int numlocalattachments;
-	int localattachmentindex;
+	namespace v121
+	{
+		// data source struct for subversion 12.1
+		struct studiohdr_t
+		{
+			int id;          // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
+			int version;     // Format version number, such as 48 (0x30,0x00,0x00,0x00)
+			int checksum;    // This has to be the same in the phy and vtx files to load!
+			int sznameindex; // This has been moved from studiohdr2 to the front of the main header.
+			char name[64];   // The internal name of the model, padding with null bytes.
+			int length;      // Data size of MDL file in bytes.
 
-	int numlocalnodes;
-	int localnodeindex;
-	int localnodenameindex;
+			Vector3 eyeposition;	// ideal eye position
 
-	int numunknodes;
-	int unknodexindex;
+			Vector3 illumposition;	// illumination center
 
-	int meshindex; // offset to model meshes
+			Vector3 hull_min;		// ideal movement hull size
+			Vector3 hull_max;
 
-	int deprecated_numflexcontrollers;
-	int deprecated_flexcontrollerindex;
+			Vector3 view_bbmin;		// clipping bounding box
+			Vector3 view_bbmax;
 
-	int deprecated_numflexrules;
-	int deprecated_flexruleindex;
+			int flags;
 
-	int numikchains;
-	int ikchainindex;
+			int numbones; // bones
+			int boneindex;
 
-	// this is rui meshes
-	int numruimeshes;
-	int ruimeshindex;
+			int numbonecontrollers; // bone controllers
+			int bonecontrollerindex;
 
-	int numlocalposeparameters;
-	int localposeparamindex;
+			int numhitboxsets;
+			int hitboxsetindex;
 
-	int surfacepropindex;
+			int numlocalanim;   // animations/poses
+			int localanimindex; // animation descriptions
 
-	int keyvalueindex;
-	int keyvaluesize;
+			int numlocalseq; // sequences
+			int	localseqindex;
 
-	int numlocalikautoplaylocks;
-	int localikautoplaylockindex;
+			int activitylistversion; // initialization flag - have the sequences been indexed?
 
-	float mass;
-	int contents;
+			// mstudiotexture_t
+			// short rpak path
+			// raw textures
+			int materialtypesindex;
+			int numtextures; // the material limit exceeds 128, probably 256.
+			int textureindex;
 
-	// unused for packed models
-	int numincludemodels;
-	int includemodelindex;
+			// this should always only be one, unless using vmts.
+			// raw textures search paths
+			int numcdtextures;
+			int cdtextureindex;
 
-	int virtualModel; // set as int for our purposes
+			// replaceable textures tables
+			int numskinref;
+			int numskinfamilies;
+			int skinindex;
 
-	int bonetablebynameindex;
+			int numbodyparts;
+			int bodypartindex;
 
-	// if STUDIOHDR_FLAGS_CONSTANT_DIRECTIONAL_LIGHT_DOT is set,
-	// this value is used to calculate directional components of lighting 
-	// on static props
-	byte constdirectionallightdot;
+			int numlocalattachments;
+			int localattachmentindex;
 
-	// set during load of mdl data to track *desired* lod configuration (not actual)
-	// the *actual* clamped root lod is found in studiohwdata
-	// this is stored here as a global store to ensure the staged loading matches the rendering
-	byte rootLOD;
+			int numlocalnodes;
+			int localnodeindex;
+			int localnodenameindex;
 
-	// set in the mdl data to specify that lod configuration should only allow first numAllowRootLODs
-	// to be set as root LOD:
-	//	numAllowedRootLODs = 0	means no restriction, any lod can be set as root lod.
-	//	numAllowedRootLODs = N	means that lod0 - lod(N-1) can be set as root lod, but not lodN or lower.
-	byte numAllowedRootLODs;
+			// these are unknown since I don't know what they cut
+			int numunk_v121;
+			int unkindex_v121;
 
-	byte unused;
+			int numikchains;
+			int ikchainindex;
 
-	float fadeDistance;
+			// this is rui meshes
+			int numruimeshes;
+			int ruimeshindex;
 
-	float gathersize; // what. from r5r struct
+			int numlocalposeparameters;
+			int localposeparamindex;
 
-	int deprecated_numflexcontrollerui;
-	int deprecated_flexcontrolleruiindex;
+			int surfacepropindex;
 
-	float flVertAnimFixedPointScale; // to be verified
-	int surfacepropLookup; // saved in the file
+			int keyvalueindex;
+			int keyvaluesize;
 
-	int sourceFilenameOffset; // doesn't actually need to be written pretty sure, only four bytes when not present.
+			int numlocalikautoplaylocks;
+			int localikautoplaylockindex;
 
-	int numsrcbonetransform;
-	int srcbonetransformindex;
+			float mass;
+			int contents;
 
-	int	illumpositionattachmentindex;
+			// unused for packed models
+			int numincludemodels;
+			int includemodelindex;
 
-	int linearboneindex;
+			int virtualModel;
 
-	// related to jiggle boesn now
-	int m_nBoneFlexDriverCount; // unsure if that's what it is in apex
-	int m_nBoneFlexDriverIndex;
-	int unkindexflex;
+			int bonetablebynameindex;
 
-	// aabb tree in here maybe? definitely unused
-	int unk1_v54[6];
+			int numunk1_v121; // count is (lodCount / totalSubmeshCount)
+			int unkindex1_v121; // data matches the "unknown" data in s3 VG
 
-	// always "" or "Titan"
-	int unkstringindex;
+			int boneremapindex;
+			int numboneremaps;
 
-	// this is now used for combined files in rpak, vtx, vvd, and vvc are all combined while vphy is separate.
-	// the indexes are added to the offset in the rpak mdl_ header.
-	// vphy isn't vphy, looks like a heavily modified vphy.
-	int vtxindex; // VTX
-	int vvdindex; // VVD / IDSV
-	int vvcindex; // VVC / IDCV 
-	int vphyindex; // VPHY / IVPS
+			int unk_v54_v121[4];
 
-	int vtxsize;
-	int vvdsize;
-	int vvcsize;
-	int vphysize; // still used in models using vg
+			// section before bone remaps
+			int unkindex2_v121;
+			int numunk2_v121;
 
-	// unused in apex
-	int unkmemberindex1;
-	int numunkmember1;
+			// section before above section
+			int unkindex3_v121;
+			int numunk3_v121;
 
-	// only seen on '_animated' suffixed models so far
-	int unkcount3;
-	int unkindex3;
+			float fadedistance;
 
-	// Per Tri Collision AABB size
-	Vector3 mins;
-	Vector3 maxs; // seem to be the same as hull size
+			float gathersize; // what. from r5r struct
 
-	int unk3_v54[3];
+			int unk_v54[2];
 
-	int unkindex4; // chunk before unkindex3 sometimes
+			// asset bakery strings if it has any
+			int sourceFilenameOffset;
 
-	short unk4_v54[2]; // same as unk3_v54_v121
+			int numsrcbonetransform;
+			int srcbonetransformindex;
 
-	int weightindex;
-	int weightsize;
-};
+			int	illumpositionattachmentindex;
 
-// data source struct for subversion 12.1
-struct studiohdr_121_t
-{
-	int id;          // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
-	int version;     // Format version number, such as 48 (0x30,0x00,0x00,0x00)
-	int checksum;    // This has to be the same in the phy and vtx files to load!
-	int sznameindex; // This has been moved from studiohdr2 to the front of the main header.
-	char name[64];   // The internal name of the model, padding with null bytes.
-	int length;      // Data size of MDL file in bytes.
+			int linearboneindex;
 
-	Vector3 eyeposition;	// ideal eye position
+			int numboneflexdrivers; // unsure if that's what it is in apex
+			int boneflexdriverindex;
 
-	Vector3 illumposition;	// illumination center
+			int unk3_v54_a[2]; // I think this section was split vs old v54
 
-	Vector3 hull_min;		// ideal movement hull size
-	Vector3 hull_max;
+			// the indexes are added to the offset in the rpak mdl_ header.
+			// vphy isn't vphy, looks like a heavily modified vphy.
+			// something different about these now
+			int vtxindex; // VTX
+			int vvdindex; // VVD / IDSV
+			int vvcindex; // VVC / IDCV 
+			int vphyindex; // VPHY / IVPS
 
-	Vector3 view_bbmin;		// clipping bounding box
-	Vector3 view_bbmax;
+			int vtxsize;
+			int vvdsize;
+			int vvcsize;
+			int vphysize;
 
-	int flags;
+			int unk3_v54_b; // second part of above
 
-	int numbones; // bones
-	int boneindex;
+			int unkindex3; // index to chunk after string block
 
-	int numbonecontrollers; // bone controllers
-	int bonecontrollerindex;
+			Vector3 mins; // min/max for Something
+			Vector3 maxs; // seem to be the same as hull size
 
-	int numhitboxsets;
-	int hitboxsetindex;
+			int unkindex4; // chunk before unkindex2 sometimes
 
-	int numlocalanim;   // animations/poses
-	int localanimindex; // animation descriptions
-
-	int numlocalseq; // sequences
-	int	localseqindex;
-
-	int activitylistversion; // initialization flag - have the sequences been indexed?
-
-	// mstudiotexture_t
-	// short rpak path
-	// raw textures
-	int materialtypesindex;
-	int numtextures; // the material limit exceeds 128, probably 256.
-	int textureindex;
-
-	// this should always only be one, unless using vmts.
-	// raw textures search paths
-	int numcdtextures;
-	int cdtextureindex;
-
-	// replaceable textures tables
-	int numskinref;
-	int numskinfamilies;
-	int skinindex;
-
-	int numbodyparts;
-	int bodypartindex;
-
-	int numlocalattachments;
-	int localattachmentindex;
-
-	int numlocalnodes;
-	int localnodeindex;
-	int localnodenameindex;
-
-	// these are unknown since I don't know what they cut
-	int numunk_v121;
-	int unkindex_v121;
-
-	int numikchains;
-	int ikchainindex;
-
-	// this is rui meshes
-	int numruimeshes;
-	int ruimeshindex;
-
-	int numlocalposeparameters;
-	int localposeparamindex;
-
-	int surfacepropindex;
-
-	int keyvalueindex;
-	int keyvaluesize;
-
-	int numlocalikautoplaylocks;
-	int localikautoplaylockindex;
-
-	float mass;
-	int contents;
-
-	// unused for packed models
-	int numincludemodels;
-	int includemodelindex;
-
-	int virtualModel;
-
-	int bonetablebynameindex;
-
-	int numunk1_v121; // count is (lodCount / totalSubmeshCount)
-	int unkindex1_v121; // data matches the "unknown" data in s3 VG
-
-	int boneremapindex;
-	int numboneremaps;
-
-	int unk_v54_v121[4];
-
-	// section before bone remaps
-	int unkindex2_v121;
-	int numunk2_v121;
-
-	// section before above section
-	int unkindex3_v121;
-	int numunk3_v121;
-
-	float fadedistance;
-
-	float gathersize; // what. from r5r struct
-
-	int unk_v54[2];
-
-	// asset bakery strings if it has any
-	int sourceFilenameOffset;
-
-	int numsrcbonetransform;
-	int srcbonetransformindex;
-
-	int	illumpositionattachmentindex;
-
-	int linearboneindex;
-
-	int numboneflexdrivers; // unsure if that's what it is in apex
-	int boneflexdriverindex;
-
-	int unk3_v54_a[2]; // I think this section was split vs old v54
-
-	// the indexes are added to the offset in the rpak mdl_ header.
-	// vphy isn't vphy, looks like a heavily modified vphy.
-	// something different about these now
-	int vtxindex; // VTX
-	int vvdindex; // VVD / IDSV
-	int vvcindex; // VVC / IDCV 
-	int vphyindex; // VPHY / IVPS
-
-	int vtxsize;
-	int vvdsize;
-	int vvcsize;
-	int vphysize;
-
-	int unk3_v54_b; // second part of above
-
-	int unkindex3; // index to chunk after string block
-
-	Vector3 mins; // min/max for Something
-	Vector3 maxs; // seem to be the same as hull size
-
-	int unkindex4; // chunk before unkindex2 sometimes
-
-	int unk4_v54[3];
-};
+			int unk4_v54[3];
+		};
+	}
+}
 
 // used in vg as well
 struct mstudioexternalweight_t
@@ -636,3 +645,5 @@ uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 
 Vector64 PackPos_UINT64(Vector3 vec);
 
+
+};

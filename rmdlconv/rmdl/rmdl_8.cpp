@@ -7,11 +7,18 @@
 
 #include <map>
 
+/*
+	Type:    RMDL
+	Version: 8
+	Game:    Apex Legends Seasons 0-1
+
+	Files: .rmdl, .vtx, .vvd, .vvc, .vvw
+*/
 
 void CreateVGFile_v8(const std::string& filePath)
 {
 	printf("creating VG file from v8 rmdl...\n");
-	;
+
 	std::string rmdlPath = ChangeExtension(filePath, "rmdl");
 	std::string vtxPath = ChangeExtension(filePath, "vtx");
 	std::string vvdPath = ChangeExtension(filePath, "vvd");
@@ -92,7 +99,7 @@ void CreateVGFile_v8(const std::string& filePath)
 		vvw = reinterpret_cast<vertexWeightFileHeader_t*>(vvwBuf);
 	}
 
-	studiohdr_v54_t* rmdl = reinterpret_cast<studiohdr_v54_t*>(rmdlBuf);
+	r5::v8::studiohdr_t * rmdl = reinterpret_cast<r5::v8::studiohdr_t*>(rmdlBuf);
 	FileHeader_t* vtx = reinterpret_cast<FileHeader_t*>(vtxBuf);
 	vertexFileHeader_t* vvd = reinterpret_cast<vertexFileHeader_t*>(vvdBuf);
 
