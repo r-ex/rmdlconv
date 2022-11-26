@@ -42,7 +42,14 @@ int main(int argc, char** argv)
 
 	int mdlVersion = mdlIn.read<int>();
 
-	//if (mdlVersion == 54)
+	switch(mdlVersion)
+	{
+	case 53: // Titanfall 2
+	{
+
+		break;
+	}
+	case 54:
 	{
 		// === RMDL -> RMDL ===
 
@@ -93,6 +100,8 @@ int main(int argc, char** argv)
 		{
 			Error("version is not currently supported\n");
 		}
+		break;
+	}
 	}
 
 }

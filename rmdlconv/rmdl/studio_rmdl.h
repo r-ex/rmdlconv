@@ -646,4 +646,9 @@ uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 Vector64 PackPos_UINT64(Vector3 vec);
 
 
+struct r5modeldata_t
+{
+	r5::v8::studiohdr_t hdr;
+
+
 };

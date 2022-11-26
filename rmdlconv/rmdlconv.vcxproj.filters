@@ -22,6 +22,9 @@
     <Filter Include="Source Files\rmdl">
       <UniqueIdentifier>{c944f35c-47ce-457b-9db1-cf3f7c3ed24f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\mdl">
+      <UniqueIdentifier>{23f7f4b5-1dd3-4f67-8ca2-d35d5e763343}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -41,6 +44,9 @@
     </ClCompile>
     <ClCompile Include="rmdl\studio.cpp">
       <Filter>Source Files\rmdl</Filter>
+    </ClCompile>
+    <ClCompile Include="mdl\mdl_53.cpp">
+      <Filter>Source Files\mdl</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
