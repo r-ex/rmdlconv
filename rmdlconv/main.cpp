@@ -104,4 +104,6 @@ int main(int argc, char** argv)
 	}
 	}
 
+	if(!cmdline.HasParam("-nopause"))
+		std::system("pause");
 }
