@@ -54,7 +54,7 @@ public: // read/write
 	// params:
 	// advancebuf - whether the current position should be updated after reading
 	template <typename T>
-	T read(bool advancebuf=true)
+	T read(bool advancebuf = true)
 	{
 		if (_curpos + sizeof(T) > _bufsize)
 			throw "failed to read from buffer: attempted to read past the end of the buffer";
@@ -68,6 +68,20 @@ public: // read/write
 		}
 
 		return val;
+	}
+
+	void read(char* dst, unsigned __int64 size, bool advancebuf = false)
+	{
+		if (_curpos + size > _bufsize)
+			throw "failed to read from buffer: attempted to read past the end of the buffer";
+
+		memcpy_s(dst, size, _pbuf, size);
+
+		if (advancebuf)
+		{
+			_pbuf = static_cast<char*>(_pbuf) + size;
+			_curpos += size;
+		}
 	}
 
 	template <typename T>
