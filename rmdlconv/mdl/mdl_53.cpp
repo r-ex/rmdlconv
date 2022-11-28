@@ -5,7 +5,9 @@
 #include "mdl/studio.h"
 #include "BinaryIO.h"
 
-// convert the "static" vars in studiohdr (anything but indexes)
+//
+// ConvertStudioHdr
+// Purpose: converts the mdl v53 (Titanfall 2) studiohdr_t struct to rmdl v8 compatible (Apex Legends Season 0-6)
 r5::v8::studiohdr_t ConvertStudioHdr(r2::studiohdr_t& hdr)
 {
 	r5::v8::studiohdr_t nh{};
@@ -15,6 +17,7 @@ r5::v8::studiohdr_t ConvertStudioHdr(r2::studiohdr_t& hdr)
 	
 	nh.checksum = hdr.checksum;
 
+	// :)
 	if ((_time64(NULL) % 69420) == 0)
 		nh.checksum = 0xDEADBEEF;
 
@@ -78,43 +81,48 @@ r5::v8::studiohdr_t ConvertStudioHdr(r2::studiohdr_t& hdr)
 
 //
 // ConvertMDLData_53
-// Purpose: converts mdl data from mdl v53 (Titanfall 2) to rmdl v9 (Apex Legends Season 2-6)
+// Purpose: converts mdl data from mdl v53 (Titanfall 2) to rmdl v9 (Apex Legends Season 2/3)
+//
 void ConvertMDLData_53(char* buf, const std::string& filePath)
 {
-	std::filesystem::path path(filePath);
-
-	std::string mdlPath = ChangeExtension(filePath, "mdl");
-
 	rmem input(buf);
 
 	r2::studiohdr_t oldHeader = input.read<r2::studiohdr_t>();
 	r5::v8::studiohdr_t newHeader = ConvertStudioHdr(oldHeader);
 
-	char* vtxBuf = nullptr;
+	std::unique_ptr<char[]> vtxBuf;
 	if (oldHeader.vtxsize > 0)
 	{
-		vtxBuf = new char[oldHeader.vtxsize];
-		memcpy_s(vtxBuf, oldHeader.vtxsize, buf + oldHeader.vtxindex, oldHeader.vtxsize);
+		vtxBuf = std::unique_ptr<char[]>(new char[oldHeader.vtxsize]);
+
+		input.seek(oldHeader.vtxindex, rseekdir::beg);
+		input.read(vtxBuf.get(), oldHeader.vtxsize);
 	}
-	
-	char* vvdBuf = nullptr;
+
+	std::unique_ptr<char[]> vvdBuf;
 	if (oldHeader.vvdsize > 0)
 	{
-		vvdBuf = new char[oldHeader.vvdsize];
-		memcpy_s(vvdBuf, oldHeader.vvdsize, buf + oldHeader.vvdindex, oldHeader.vvdsize);
+		vvdBuf = std::unique_ptr<char[]>(new char[oldHeader.vvdsize]);
+
+		input.seek(oldHeader.vvdindex, rseekdir::beg);
+		input.read(vvdBuf.get(), oldHeader.vvdsize);
 	}
 
-	char* vphyBuf = nullptr;
+	std::unique_ptr<char[]> vphyBuf;
 	if (oldHeader.vphysize > 0)
 	{
-		vphyBuf = new char[oldHeader.vphysize];
-		memcpy_s(vphyBuf, oldHeader.vphysize, buf + oldHeader.vphyindex, oldHeader.vphysize);
+		vphyBuf = std::unique_ptr<char[]>(new char[oldHeader.vphysize]);
+
+		input.seek(oldHeader.vphyindex, rseekdir::beg);
+		input.read(vphyBuf.get(), oldHeader.vphysize);
 	}
 
-	char* vvcBuf = nullptr;
+	std::unique_ptr<char[]> vvcBuf;
 	if (oldHeader.vvcsize > 0)
 	{
-		vvcBuf = new char[oldHeader.vvcsize];
-		memcpy_s(vvcBuf, oldHeader.vvcsize, buf + oldHeader.vvcindex, oldHeader.vvcsize);
+		vvcBuf = std::unique_ptr<char[]>(new char[oldHeader.vvcsize]);
+
+		input.seek(oldHeader.vvcindex, rseekdir::beg);
+		input.read(vvcBuf.get(), oldHeader.vvcsize);
 	}
 }
