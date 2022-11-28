@@ -1,7 +1,6 @@
 #pragma once
-#include <cstdint>
 
-enum class rseekdir : uint8_t {
+enum class rseekdir : unsigned __int8 {
 	beg, // from beginning
 	cur, // from current position
 	end  // from end of the buffer (requires size to be set)
