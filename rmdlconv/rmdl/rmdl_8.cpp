@@ -295,7 +295,7 @@ void CreateVGFile_v8(const std::string& filePath)
 											mstudioexternalweight_t newExternalWeight{};
 
 											newExternalWeight.weight = vvwWeight->weight;
-											newExternalWeight.bone = boneMap.find(vvwWeight->bone)->second; // change this to the boen remap
+											newExternalWeight.bone = boneMap.find(vvwWeight->bone)->second; // change this to the bone remap
 
 											externalWeights.push_back(newExternalWeight);
 
@@ -445,23 +445,23 @@ void CreateVGFile_v8(const std::string& filePath)
 	// write vertcies based on flags so we can have vvc stuff, and potentially other flag based stuff in the future
 	for (int i = 0; i < vertices.size(); i++)
 	{
-		Vertex_VG_t vertice = vertices.at(i);
+		Vertex_VG_t vertex = vertices.at(i);
 
 		if (meshes[0].flags & VG_PACKED_POSITION)
-			io.getWriter()->write((char*)&vertice.m_vecPositionPacked, sizeof(Vector64));
+			io.getWriter()->write((char*)&vertex.m_vecPositionPacked, sizeof(Vector64));
 		else
-			io.getWriter()->write((char*)&vertice.m_vecPosition, sizeof(Vector3));
+			io.getWriter()->write((char*)&vertex.m_vecPosition, sizeof(Vector3));
 
-		io.getWriter()->write((char*)&vertice.m_BoneWeightsPacked, sizeof(mstudiopackedboneweight_t));
-		io.getWriter()->write((char*)&vertice.m_NormalTangentPacked, sizeof(uint32_t));
+		io.getWriter()->write((char*)&vertex.m_BoneWeightsPacked, sizeof(mstudiopackedboneweight_t));
+		io.getWriter()->write((char*)&vertex.m_NormalTangentPacked, sizeof(uint32_t));
 
 		if (rmdl->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
-			io.getWriter()->write((char*)&vertice.m_color, sizeof(VertexColor_t));
+			io.getWriter()->write((char*)&vertex.m_color, sizeof(VertexColor_t));
 
-		io.getWriter()->write((char*)&vertice.m_vecTexCoord, sizeof(Vector2));
+		io.getWriter()->write((char*)&vertex.m_vecTexCoord, sizeof(Vector2));
 
 		if (rmdl->flags & STUDIOHDR_FLAGS_USES_UV2)
-			io.getWriter()->write((char*)&vertice.m_vecTexCoord2, sizeof(Vector2));
+			io.getWriter()->write((char*)&vertex.m_vecTexCoord2, sizeof(Vector2));
 	}
 
 	header.externalWeightOffset = io.tell();
