@@ -62,46 +62,40 @@ int main(int argc, char** argv)
 	}
 	case 54:
 	{
-		// === RMDL -> RMDL ===
-
-		// version is used to identify the format of the model to be converted,
-		// as there are many subversions of MDL v54 which are not easily identifiable from the data alone
-
+		// rmdl subversion
 		std::string version = "12.1";
 
-		// get version from command line if specified or ask for manual input
-		if (!cmdline.HasParam("-version"))
+		if (cmdline.HasParam("-version"))
+			version = cmdline.GetParamValue("-version", "12.1");
+		else
 		{
 			std::cout << pszVersionHelpString;
 			std::cin >> version;
 		}
-		else
-			version = cmdline.GetParamValue("-version", "12.1");
 
-		printf("input MDL is version %s. converting...\n\n", version.c_str());
-
-		// always call ChangeExtension so we guarantee that the path is .vg
-		std::string vgFilePath = ChangeExtension(mdlPath, "vg");
-		char* vgInputBuf = nullptr;
-
-		if (FILE_EXISTS(vgFilePath))
-		{
-			uintmax_t vgInputSize = GetFileSize(vgFilePath);
-
-			vgInputBuf = new char[vgInputSize];
-
-			std::ifstream ifs(vgFilePath, std::ios::in | std::ios::binary);
-
-			ifs.read(vgInputBuf, vgInputSize);
-
-			if (*(int*)vgInputBuf != 0x47567430) // 0tVG
-				delete[] vgInputBuf;
-		}
+		printf("Input file is RMDL v%s. attempting conversion...\n", version.c_str());
 
 		if (version == "12.1") // handle 12.1 model conversions
 		{
-			if (vgInputBuf) // if vgInputBuf == nullptr, there is no valid vg file
-				ConvertVGData_12_1(vgInputBuf, vgFilePath);
+			// convert v12.1 vg to v9 vg
+			std::string vgFilePath = ChangeExtension(mdlPath, "vg");
+
+			if (FILE_EXISTS(vgFilePath))
+			{
+				uintmax_t vgInputSize = GetFileSize(vgFilePath);
+
+				char* vgInputBuf = new char[vgInputSize];
+
+				std::ifstream ifs(vgFilePath, std::ios::in | std::ios::binary);
+
+				ifs.read(vgInputBuf, vgInputSize);
+
+				// if 0tVG magic
+				if (*(int*)vgInputBuf == 'GVt0')
+					ConvertVGData_12_1(vgInputBuf, vgFilePath);
+				else
+					delete[] vgInputBuf;
+			}
 		}
 		else if (version == "8")
 		{
