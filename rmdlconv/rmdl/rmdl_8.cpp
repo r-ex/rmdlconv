@@ -26,7 +26,7 @@ void CreateVGFile_v8(const std::string& filePath)
 	std::string vvwPath = ChangeExtension(filePath, "vvw");
 
 	if (!FILE_EXISTS(vtxPath) || !FILE_EXISTS(vvdPath))
-		Error("failed to convert vtx,vvd to VG. vtx and vvd files are required but could not be found \n");
+		Error("failed to convert external model components (vtx, vvd) to VG. '.vtx' and '.vvd' files are required but were not found\n");
 
 	char* rmdlBuf = nullptr;
 	{
