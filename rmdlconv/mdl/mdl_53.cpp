@@ -5,6 +5,7 @@
 #include "mdl/studio.h"
 #include "BinaryIO.h"
 
+// convert the "static" vars in studiohdr (anything but indexes)
 r5::v8::studiohdr_t ConvertStudioHdr(r2::studiohdr_t& hdr)
 {
 	r5::v8::studiohdr_t nh{};
@@ -72,10 +73,12 @@ r5::v8::studiohdr_t ConvertStudioHdr(r2::studiohdr_t& hdr)
 	nh.flVertAnimFixedPointScale = hdr.flVertAnimFixedPointScale;
 	//-| end misc vars
 
-
 	return nh;
 }
 
+//
+// ConvertMDLData_53
+// Purpose: converts mdl data from mdl v53 (Titanfall 2) to rmdl v9 (Apex Legends Season 2-6)
 void ConvertMDLData_53(char* buf, const std::string& filePath)
 {
 	std::filesystem::path path(filePath);
@@ -84,5 +87,34 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	rmem input(buf);
 
+	r2::studiohdr_t oldHeader = input.read<r2::studiohdr_t>();
+	r5::v8::studiohdr_t newHeader = ConvertStudioHdr(oldHeader);
+
+	char* vtxBuf = nullptr;
+	if (oldHeader.vtxsize > 0)
+	{
+		vtxBuf = new char[oldHeader.vtxsize];
+		memcpy_s(vtxBuf, oldHeader.vtxsize, buf + oldHeader.vtxindex, oldHeader.vtxsize);
+	}
 	
+	char* vvdBuf = nullptr;
+	if (oldHeader.vvdsize > 0)
+	{
+		vvdBuf = new char[oldHeader.vvdsize];
+		memcpy_s(vvdBuf, oldHeader.vvdsize, buf + oldHeader.vvdindex, oldHeader.vvdsize);
+	}
+
+	char* vphyBuf = nullptr;
+	if (oldHeader.vphysize > 0)
+	{
+		vphyBuf = new char[oldHeader.vphysize];
+		memcpy_s(vphyBuf, oldHeader.vphysize, buf + oldHeader.vphyindex, oldHeader.vphysize);
+	}
+
+	char* vvcBuf = nullptr;
+	if (oldHeader.vvcsize > 0)
+	{
+		vvcBuf = new char[oldHeader.vvcsize];
+		memcpy_s(vvcBuf, oldHeader.vvcsize, buf + oldHeader.vvcindex, oldHeader.vvcsize);
+	}
 }
