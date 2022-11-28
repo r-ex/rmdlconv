@@ -210,8 +210,6 @@ void CreateVGFile_v8(const std::string& filePath)
 						{
 							Vertex_t* vertVtx = stripGroup->vert(v);
 
-
-
 							mstudiovertex_t* vertVvd = vvd->vertex(vtxVertOffset + vertVtx->origMeshVertID);
 							Vector4* tangentVvd = vvd->tangent(vtxVertOffset + vertVtx->origMeshVertID);
 
@@ -228,7 +226,6 @@ void CreateVGFile_v8(const std::string& filePath)
 							newVert.m_vecPositionPacked = PackPos_UINT64(vertVvd->m_vecPosition);
 							newVert.m_vecPosition = vertVvd->m_vecPosition;
 							newVert.m_vecTexCoord = vertVvd->m_vecTexCoord;
-
 
 							for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
 							{
@@ -338,7 +335,6 @@ void CreateVGFile_v8(const std::string& filePath)
 
 							legacyWeights.push_back(newLegacyWeight);
 
-
 							// check header flags so we don't pull color or uv2 when we don't want it
 							if (rmdl->flags & STUDIOHDR_FLAGS_USES_UV2)
 							{
@@ -418,7 +414,6 @@ void CreateVGFile_v8(const std::string& filePath)
 	}
 
 	lods = newLods;
-
 
 	BinaryIO io;
 	io.open(ChangeExtension(filePath, "vg"), BinaryIOMode::Write);
