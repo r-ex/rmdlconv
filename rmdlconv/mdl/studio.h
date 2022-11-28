@@ -385,7 +385,7 @@ namespace r2
 		int unkstringindex; // string index
 
 		// ANIs are no longer used and this is reflected in many structs
-		// Start of interal file data
+		// Start of internal file data
 		int vtxindex; // VTX
 		int vvdindex; // VVD / IDSV
 		int vvcindex; // VVC / IDCV 
