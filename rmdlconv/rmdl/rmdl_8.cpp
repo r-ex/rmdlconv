@@ -6,6 +6,7 @@
 #include "mdl/studio.h"
 
 #include <map>
+#include <cassert>
 
 /*
 	Type:    RMDL
@@ -241,13 +242,17 @@ void CreateVGFile_v8(const std::string& filePath)
 								{
 									mstudioexternalweight_t* externalWeight = vvw->weight(vertVvd->m_BoneWeights.weights.packedweight.externalweightindex + (n - 3));
 
-									if (!boneMap.count(externalWeight->bone))
+									// make sure that our weight bone id is valid, else the cast will mess with the value
+									assert(externalWeight->bone <= 0xff && "External weight bone id is invalid (above limit of 255)");
+									uint8_t boneId = (uint8_t)externalWeight->bone;
+
+									if (!boneMap.count(boneId))
 									{
-										boneMap.insert(std::pair<uint8_t, uint8_t>(externalWeight->bone, boneMapIdx));
-										printf("added bone %i at idx %i\n", boneMap.find(externalWeight->bone)->first, boneMap.find(externalWeight->bone)->second);
+										boneMap.insert(std::pair<uint8_t, uint8_t>(boneId, boneMapIdx));
+										printf("added bone %i at idx %i\n", boneMap.find(boneId)->first, boneMap.find(boneId)->second);
 										boneMapIdx++;
 
-										BoneStates.push_back(boneMap.find(externalWeight->bone)->first);
+										BoneStates.push_back(boneMap.find(boneId)->first);
 									}
 								}
 							}
