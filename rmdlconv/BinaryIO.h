@@ -151,7 +151,7 @@ public:
 	}
 
 	// Writes a string to the file
-	void writeString(std::string str)
+	void writeString(std::string& str)
 	{
 		if (!checkWritabilityStatus())
 			return;
