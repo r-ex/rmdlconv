@@ -29,19 +29,19 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	size_t externalWeightsBufSize = 0;
 	size_t stripsBufSize = 0;
 	size_t lodBufSize = vghInput.lodCount * sizeof(ModelLODHeader_VG_t);
-	uint16_t lodSubmeshCount = 0;
+	short lodSubmeshCount = 0;
 
 	//char* lodBuf = new char[lodBufSize];
 	std::unique_ptr<char[]> lodBuf(new char[lodBufSize]);
 	rmem lods(lodBuf.get());
 
-	for (unsigned int i = 0; i < vghInput.lodCount; ++i)
+	for (int i = 0; i < vghInput.lodCount; ++i)
 	{
 		size_t thisLodOffset = 0x18 + (i * sizeof(VGLodNew)) + vghInput.lodOffset;
 		input.seek(thisLodOffset, rseekdir::beg);
 		VGLodNew lodInput = input.read<VGLodNew>();
 
-		ModelLODHeader_VG_t lod{ lodSubmeshCount, lodInput.meshCount, lodInput.distance};
+		ModelLODHeader_VG_t lod{ lodSubmeshCount, (short)lodInput.meshCount, lodInput.distance};
 
 		lods.write(lod);
 
@@ -86,7 +86,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	rmem submeshes(meshBuf.get());
 
 	// populate buffers fr
-	for (unsigned int i = 0; i < vghInput.lodCount; ++i)
+	for (int i = 0; i < vghInput.lodCount; ++i)
 	{
 		size_t thisLodOffset = 0x18 + (i * sizeof(VGLodNew)) + vghInput.lodOffset;
 		input.seek(thisLodOffset, rseekdir::beg);
