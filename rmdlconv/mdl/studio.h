@@ -408,4 +408,135 @@ namespace r2
 		int unused1[60];
 
 	};
+
+	struct mstudiobone_t
+	{
+		int sznameindex;
+
+		int parent; // parent bone
+		int bonecontroller[6]; // bone controller index, -1 == none
+
+		// default values
+		Vector3 pos; // base bone position
+		Quaternion quat;
+		RadianEuler rot; // base bone rotation
+		Vector3 scale; // bone scale(?)
+
+		// compression scale
+		Vector3 posscale; // scale muliplier for bone position in animations. deprecated in v53, as the posscale is stored in anim bone headers
+		Vector3 rotscale; // scale muliplier for bone rotation in animations
+		Vector3 scalescale; // scale muliplier for scale
+
+		matrix3x4_t poseToBone;
+		Quaternion qAlignment;
+
+		int flags;
+		int proctype;
+		int procindex; // procedural rule offset
+		int physicsbone; // index into physically simulated bone
+
+		int surfacepropidx; // index into string tablefor property name
+
+		int contents; // See BSPFlags.h for the contents flags
+
+		int surfacepropLookup; // this index must be cached by the loader, not saved in the file
+
+		// unknown phy related section
+		short unkindex; // index into this section
+		short unkcount; // number of sections for this bone?? see: models\s2s\s2s_malta_gun_animated.mdl
+
+		int unused[7]; // remove as appropriate
+	};
+}
+
+#define STRING_FROM_IDX(base, idx) reinterpret_cast<const char*>((char*)base + idx)
+
+struct stringentry_t
+{
+	char* base;
+	char* addr;
+	int* ptr;
+	const char* string;
+	int dupindex;
+};
+
+struct s_modeldata_t
+{
+	std::vector<stringentry_t> stringTable;
+	char* pBase;
+	char* pData;
+};
+
+inline s_modeldata_t g_model;
+
+static void BeginStringTable()
+{
+	g_model.stringTable.emplace_back(stringentry_t{ NULL, NULL, NULL, "", -1 });
+}
+
+static void AddToStringTable(char* base, int* ptr, const char* string)
+{
+	if (!string)
+		string = "";
+
+	stringentry_t newString{};
+
+	int i = 0;
+	for(auto&it: g_model.stringTable)
+	{
+		if (!strcmp(string, it.string))
+		{
+			newString.base = (char*)base;
+			newString.ptr = ptr;
+			newString.string = string;
+			newString.dupindex = i;
+			g_model.stringTable.emplace_back(newString);
+			return;
+		}
+		i++;
+	}
+
+	newString.base = (char*)base;
+	newString.ptr = ptr;
+	newString.string = string;
+	newString.dupindex = -1;
+
+	g_model.stringTable.emplace_back(newString);
+}
+
+static char* WriteStringTable(char* pData)
+{
+	auto& stringTable = g_model.stringTable;
+
+	for (auto& it : stringTable)
+	{
+		// if first time the string is added to the table (unique or first version of duplicated strings)
+		if (it.dupindex == -1)
+		{
+			it.addr = pData;
+
+			if (it.ptr)
+			{
+				*it.ptr = pData - it.base;
+				
+				int length = strlen(it.string);
+				strcpy_s(pData, length+1, it.string);
+
+				pData += length;
+
+			}
+
+			*pData = '\0';
+
+			pData++;
+		}
+		else
+		{
+			// if string is a duplicate entry
+			// find the offset from the var's base ptr to the initial instance of the string
+			*it.ptr = stringTable[it.dupindex].addr - it.base;
+		}
+	}
+
+	return pData;
 }

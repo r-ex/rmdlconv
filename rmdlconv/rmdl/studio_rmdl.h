@@ -297,6 +297,38 @@ namespace r5 // apex legends
 			int weightindex;
 			int weightsize;
 		};
+
+		struct mstudiobone_t
+		{
+			int sznameindex;
+
+			int parent; // parent bone
+			int bonecontroller[6]; // bone controller index, -1 == none
+
+			// default values
+			Vector3 pos;
+			Quaternion quat;
+			RadianEuler rot;
+			Vector3 scale; // bone scale(?)
+
+			matrix3x4_t poseToBone;
+			Quaternion qAlignment;
+
+			int flags;
+			int proctype;
+			int procindex; // procedural rule
+			int physicsbone; // index into physically simulated bone
+
+			int surfacepropidx; // index into string tablefor property name
+
+			int contents; // See BSPFlags.h for the contents flags
+
+			int surfacepropLookup; // written on compile in v54
+
+			int unk;
+
+			int unkid; // physics index (?)
+		};
 	}
 
 	namespace v121
@@ -646,9 +678,37 @@ uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 Vector64 PackPos_UINT64(Vector3 vec);
 
 
-struct r5modeldata_t
+// internal structs for file types
+struct s_bone_t
 {
-	r5::v8::studiohdr_t hdr;
+	int sznameindex;
+	const char* name;
 
+	int parent; // parent bone
+	int bonecontroller[6]; // bone controller index, -1 == none
 
+	// default values
+	Vector3 pos;
+	Quaternion quat;
+	RadianEuler rot;
+	Vector3 scale; // bone scale(?)
+
+	matrix3x4_t poseToBone;
+	Quaternion qAlignment;
+
+	int flags;
+	int proctype;
+	int procindex; // procedural rule
+	int physicsbone; // index into physically simulated bone
+
+	int surfacepropidx; // index into string tablefor property name
+	const char* surfaceprop;
+
+	int contents; // See BSPFlags.h for the contents flags
+
+	int surfacepropLookup; // written on compile in v54
+
+	int unk;
+
+	int unkid; // physics index (?)
 };

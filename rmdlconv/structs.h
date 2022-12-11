@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <mathlib.h>
 
 // normal source uses these data types
 typedef char byte;
