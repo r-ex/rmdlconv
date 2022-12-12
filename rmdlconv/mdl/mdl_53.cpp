@@ -10,7 +10,6 @@
 // Purpose: converts the mdl v53 (Titanfall 2) studiohdr_t struct to rmdl v8 compatible (Apex Legends Season 0-6)
 void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 {
-
 	out->id = 'TSDI';
 	out->version = 54;
 	
@@ -76,40 +75,106 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	//-| end misc vars
 }
 
-std::vector<s_bone_t> ConvertBones_53(r2::mstudiobone_t* bones, int numBones)
+void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones)
 {
-	std::vector<s_bone_t> boneVec;
+	printf("converting %i bones...\n", numBones);
+	std::vector<r5::v8::mstudiobone_t*> proceduralBones;
 
+	char* pBoneStart = g_model.pData;
 	for (int i = 0; i < numBones; ++i)
 	{
-		r2::mstudiobone_t* oldBone = &bones[i];
-		s_bone_t newBone{};
+		r2::mstudiobone_t* oldBone = &pOldBones[i];
 
-		const char* boneName = STRING_FROM_IDX(oldBone, oldBone->sznameindex);
-		newBone.name = boneName;
+		r5::v8::mstudiobone_t* newBone = reinterpret_cast<r5::v8::mstudiobone_t*>(g_model.pData) + i;
 
-		const char* surfaceprop = STRING_FROM_IDX(oldBone, oldBone->surfacepropidx);
-		newBone.surfaceprop = surfaceprop;
+		AddToStringTable((char*)newBone, &newBone->sznameindex, STRING_FROM_IDX(oldBone, oldBone->sznameindex));
+		//newBone.name = boneName;
 
-		newBone.parent = oldBone->parent;
-		memcpy(&newBone.bonecontroller, &oldBone->bonecontroller, sizeof(oldBone->bonecontroller));
-		newBone.pos = oldBone->pos;
-		newBone.quat = oldBone->quat;
-		newBone.rot = oldBone->rot;
-		newBone.scale = oldBone->scale;
-		newBone.poseToBone = oldBone->poseToBone;
-		newBone.qAlignment = oldBone->qAlignment;
-		newBone.flags = oldBone->flags;
-		newBone.proctype = oldBone->proctype;
-		newBone.procindex = oldBone->procindex;
-		newBone.physicsbone = oldBone->physicsbone;
-		newBone.contents = oldBone->contents;
-		newBone.surfacepropLookup = oldBone->surfacepropLookup;
+		AddToStringTable((char*)newBone, &newBone->surfacepropidx, STRING_FROM_IDX(oldBone, oldBone->surfacepropidx));
+		//newBone.surfaceprop = surfaceprop;
 
-		boneVec.push_back(newBone);
+		newBone->parent = oldBone->parent;
+		memcpy(&newBone->bonecontroller, &oldBone->bonecontroller, sizeof(oldBone->bonecontroller));
+		newBone->pos = oldBone->pos;
+		newBone->quat = oldBone->quat;
+		newBone->rot = oldBone->rot;
+		newBone->scale = oldBone->scale;
+		newBone->poseToBone = oldBone->poseToBone;
+		newBone->qAlignment = oldBone->qAlignment;
+		newBone->flags = oldBone->flags;
+		newBone->proctype = oldBone->proctype;
+		newBone->procindex = oldBone->procindex;
+		newBone->physicsbone = oldBone->physicsbone;
+		newBone->contents = oldBone->contents;
+		newBone->surfacepropLookup = oldBone->surfacepropLookup;
+
+		if(oldBone->proctype != 0)
+			proceduralBones.push_back(newBone);
 	}
+	g_model.pHdr->boneindex = g_model.pData - g_model.pBase;
+	g_model.pData += numBones * sizeof(r5::v8::mstudiobone_t);
 
-	return boneVec;
+	if(proceduralBones.size() > 0)
+		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
+
+	for (auto bone : proceduralBones)
+	{
+		int boneid = ((char*)bone - pBoneStart) / sizeof(r5::v8::mstudiobone_t);
+		r2::mstudiobone_t* oldBone = &pOldBones[boneid];
+		mstudiojigglebone_t* oldJBone = PTR_FROM_IDX(mstudiojigglebone_t, oldBone, oldBone->procindex);
+
+		r5::v8::mstudiojigglebone_t* jBone = reinterpret_cast<r5::v8::mstudiojigglebone_t*>(g_model.pData);
+
+		bone->procindex = (char*)jBone - (char*)bone;
+		jBone->flags = oldJBone->flags;
+		jBone->bone = boneid;
+		jBone->length = oldJBone->length;
+		jBone->tipMass = oldJBone->tipMass;
+		jBone->yawStiffness = oldJBone->yawStiffness;
+		jBone->yawDamping = oldJBone->yawDamping;
+		jBone->pitchStiffness = oldJBone->pitchStiffness;
+		jBone->pitchDamping = oldJBone->pitchDamping;
+		jBone->alongStiffness = oldJBone->alongStiffness;
+		jBone->alongDamping = oldJBone->alongDamping;
+		jBone->angleLimit = oldJBone->angleLimit;
+		jBone->minYaw = oldJBone->minYaw;
+		jBone->maxYaw = oldJBone->maxYaw;
+		jBone->yawFriction = oldJBone->yawFriction;
+		jBone->yawBounce = oldJBone->yawBounce;
+		jBone->baseMass = oldJBone->baseMass;
+		jBone->baseStiffness = oldJBone->baseStiffness;
+		jBone->baseDamping = oldJBone->baseDamping;
+		jBone->baseMinLeft = oldJBone->baseMinLeft;
+		jBone->baseMaxLeft = oldJBone->baseMaxLeft;
+		jBone->baseLeftFriction = oldJBone->baseLeftFriction;
+		jBone->baseMinUp = oldJBone->baseMinUp;
+		jBone->baseMaxUp = oldJBone->baseMaxUp;
+		jBone->baseUpFriction = oldJBone->baseUpFriction;
+		jBone->baseMinForward = oldJBone->baseMinForward;
+		jBone->baseMaxForward = oldJBone->baseMaxForward;
+		jBone->baseForwardFriction = oldJBone->baseForwardFriction;
+
+		g_model.pData += sizeof(r5::v8::mstudiojigglebone_t);
+	}
+}
+
+void ConvertAttachments_53(mstudioattachment_t* pOldAttachments, int numAttachments)
+{
+	printf("converting %i attachments...\n", numAttachments);
+
+	for (int i = 0; i < numAttachments; ++i)
+	{
+		mstudioattachment_t* oldAttach = &pOldAttachments[i];
+
+		r5::v8::mstudioattachment_t* attach = reinterpret_cast<r5::v8::mstudioattachment_t*>(g_model.pData) + i;
+
+		AddToStringTable((char*)attach, &attach->sznameindex, STRING_FROM_IDX(oldAttach, oldAttach->sznameindex));
+		attach->flags = oldAttach->flags;
+		attach->localbone = oldAttach->localbone;
+		memcpy(&attach->localmatrix, &oldAttach->localmatrix, sizeof(oldAttach->localmatrix));
+	}
+	g_model.pHdr->localattachmentindex = g_model.pData - g_model.pBase;
+	g_model.pData += numAttachments * sizeof(r5::v8::mstudioattachment_t);
 }
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
@@ -169,23 +234,29 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	// TODO[rexx]: investigate whether these can be written directly into the buf below
 	//             instead of being converted to mem structs first
 	//
-	input.seek(oldHeader.boneindex, rseekdir::beg);
-	auto bones = ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones);
 
 	// allocate temp file buffer
-	g_model.pBase = new char[FILEBUFSIZE];
+	g_model.pBase = new char[FILEBUFSIZE]{};
 	g_model.pData = g_model.pBase;
 
 	// convert mdl hdr
 	r5::v8::studiohdr_t* pHdr = (r5::v8::studiohdr_t*)g_model.pData;
 	ConvertStudioHdr(pHdr, oldHeader);
+	g_model.pHdr = pHdr;
 	g_model.pData += sizeof(r5::v8::studiohdr_t);
 
 	// init string table so we can use 
 	BeginStringTable();
 
-	const char* modelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
-	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName);
+	AddToStringTable((char*)pHdr, &pHdr->sznameindex, STRING_FROM_IDX(buf, oldHeader.sznameindex));
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader.unkstringindex));
+
+	input.seek(oldHeader.boneindex, rseekdir::beg);
+	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones);
+
+	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
+	ConvertAttachments_53((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
 
 	g_model.pData = WriteStringTable(g_model.pData);
 

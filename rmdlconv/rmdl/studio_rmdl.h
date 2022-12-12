@@ -329,6 +329,69 @@ namespace r5 // apex legends
 
 			int unkid; // physics index (?)
 		};
+
+		struct mstudiojigglebone_t
+		{
+			byte flags; // looks to be.
+
+			unsigned char bone; // id of bone, might be single byte
+
+			short pad; // possibly unused
+
+			// general params
+			float length; // how far from bone base, along bone, is tip
+			float tipMass;
+
+			float unkfloat; // v54 adds an extra value here but otherwise the same
+			// observed values are between 0-1
+
+			// flexible params
+			float yawStiffness;
+			float yawDamping;
+			float pitchStiffness;
+			float pitchDamping;
+			float alongStiffness;
+			float alongDamping;
+
+			// angle constraint
+			float angleLimit; // maximum deflection of tip in radians
+
+			// yaw constraint
+			float minYaw; // in radians
+			float maxYaw; // in radians
+			float yawFriction;
+			float yawBounce;
+
+			// pitch constraint
+			float minPitch; // in radians
+			float maxPitch; // in radians
+			float pitchFriction;
+			float pitchBounce;
+
+			// base spring
+			float baseMass;
+			float baseStiffness;
+			float baseDamping;
+			float baseMinLeft;
+			float baseMaxLeft;
+			float baseLeftFriction;
+			float baseMinUp;
+			float baseMaxUp;
+			float baseUpFriction;
+			float baseMinForward;
+			float baseMaxForward;
+			float baseForwardFriction;
+		};
+	
+		struct mstudioattachment_t
+		{
+			int sznameindex;
+			int flags;
+
+			int localbone; // parent bone
+
+			matrix3x4_t localmatrix; // attachment point
+		};
 	}
 
 	namespace v121
@@ -676,39 +739,3 @@ uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4);
 uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 
 Vector64 PackPos_UINT64(Vector3 vec);
-
-
-// internal structs for file types
-struct s_bone_t
-{
-	int sznameindex;
-	const char* name;
-
-	int parent; // parent bone
-	int bonecontroller[6]; // bone controller index, -1 == none
-
-	// default values
-	Vector3 pos;
-	Quaternion quat;
-	RadianEuler rot;
-	Vector3 scale; // bone scale(?)
-
-	matrix3x4_t poseToBone;
-	Quaternion qAlignment;
-
-	int flags;
-	int proctype;
-	int procindex; // procedural rule
-	int physicsbone; // index into physically simulated bone
-
-	int surfacepropidx; // index into string tablefor property name
-	const char* surfaceprop;
-
-	int contents; // See BSPFlags.h for the contents flags
-
-	int surfacepropLookup; // written on compile in v54
-
-	int unk;
-
-	int unkid; // physics index (?)
-};

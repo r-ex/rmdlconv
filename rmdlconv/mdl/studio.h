@@ -222,6 +222,64 @@ struct vertexColorFileHeader_t
 };
 #pragma pack(pop)
 
+struct mstudiojigglebone_t
+{
+	int flags;
+
+	// general params
+	float length; // how far from bone base, along bone, is tip
+	float tipMass;
+
+	// flexible params
+	float yawStiffness;
+	float yawDamping;
+	float pitchStiffness;
+	float pitchDamping;
+	float alongStiffness;
+	float alongDamping;
+
+	// angle constraint
+	float angleLimit; // maximum deflection of tip in radians
+
+	// yaw constraint
+	float minYaw; // in radians
+	float maxYaw; // in radians
+	float yawFriction;
+	float yawBounce;
+
+	// pitch constraint
+	float minPitch; // in radians
+	float maxPitch; // in radians
+	float pitchFriction;
+	float pitchBounce;
+
+	// base spring
+	float baseMass;
+	float baseStiffness;
+	float baseDamping;
+	float baseMinLeft;
+	float baseMaxLeft;
+	float baseLeftFriction;
+	float baseMinUp;
+	float baseMaxUp;
+	float baseUpFriction;
+	float baseMinForward;
+	float baseMaxForward;
+	float baseForwardFriction;
+};
+
+struct mstudioattachment_t
+{
+	int sznameindex;
+	int flags;
+
+	int localbone; // parent bone
+
+	matrix3x4_t localmatrix; // attachment point
+
+	int	unused[8];
+};
+
 namespace r2
 {
 	struct studiohdr_t
@@ -450,6 +508,7 @@ namespace r2
 }
 
 #define STRING_FROM_IDX(base, idx) reinterpret_cast<const char*>((char*)base + idx)
+#define PTR_FROM_IDX(type, base, idx) reinterpret_cast<type*>((char*)base + idx)
 
 struct stringentry_t
 {
@@ -462,6 +521,7 @@ struct stringentry_t
 
 struct s_modeldata_t
 {
+	r5::v8::studiohdr_t* pHdr;
 	std::vector<stringentry_t> stringTable;
 	char* pBase;
 	char* pData;
