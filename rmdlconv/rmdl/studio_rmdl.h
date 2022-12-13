@@ -739,3 +739,5 @@ uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4);
 uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 
 Vector64 PackPos_UINT64(Vector3 vec);
+
+void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* vtxBuf, char* vvdBuf, char* vvcBuf = nullptr, char* vvwBuf = nullptr);
