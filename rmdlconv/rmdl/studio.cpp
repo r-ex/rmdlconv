@@ -111,13 +111,14 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 			for (int j = 0; j < bodyPart->numModels; ++j)
 			{
 				ModelHeader_t* model = bodyPart->model(j);
-				mstudiomodel_t_v54* rmdlModel = rmdlBodyPart->model(j);
-
+				
 				ModelLODHeader_t* lod = model->lod(k);
 
 				lods.push_back(ModelLODHeader_VG_t{ (short)numMeshes, (short)lod->numMeshes, lod->switchPoint });
 
 				numMeshes += lod->numMeshes;
+
+				r5::v8::mstudiomodel_t* rmdlModel = reinterpret_cast<r5::v8::mstudiomodel_t*>((char*)rmdlBodyPart + rmdlBodyPart->modelindex) + j;
 
 				for (int l = 0; l < lod->numMeshes; ++l)
 				{
@@ -125,7 +126,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 					externalWeightIdx = 0; // reset index for new mesh
 
 					MeshHeader_t* mesh = lod->mesh(l);
-					mstudiomesh_t_v54* rmdlMesh = rmdlModel->mesh(l);
+					r5::v8::mstudiomesh_t* rmdlMesh = rmdlModel->mesh(l);
 
 					MeshHeader_VG_t newMesh{};
 

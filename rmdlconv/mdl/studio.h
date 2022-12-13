@@ -280,6 +280,13 @@ struct mstudioattachment_t
 	int	unused[8];
 };
 
+struct mstudiohitboxset_t
+{
+	int sznameindex;
+	int numhitboxes;
+	int hitboxindex;
+};
+
 namespace r2
 {
 	struct studiohdr_t
@@ -505,6 +512,96 @@ namespace r2
 
 		int unused[7]; // remove as appropriate
 	};
+
+	struct mstudiobbox_t
+	{
+		int bone;
+		int group; // intersection group
+
+		Vector3 bbmin; // bounding box
+		Vector3 bbmax;
+
+		int szhitboxnameindex; // offset to the name of the hitbox.
+
+		int critoverride; // overrides the group to be a crit, 0 or 1. might be group override since group 1 is head.
+
+		int keyvalueindex; // used for keyvalues, most for titans.
+
+		int unused[6];
+	};
+
+	struct mstudiomesh_t
+	{
+		int material;
+
+		int modelindex;
+
+		int numvertices; // number of unique vertices/normals/texcoords
+		int vertexoffset; // vertex mstudiovertex_t
+		// offset by vertexoffset number of verts into vvd vertexes, relative to the models offset
+
+		// Access thin/fat mesh vertex data (only one will return a non-NULL result)
+
+		int deprecated_numflexes; // vertex animation
+		int deprecated_flexindex;
+
+		// special codes for material operations
+		int deprecated_materialtype;
+		int deprecated_materialparam;
+
+		// a unique ordinal for this mesh
+		int meshid;
+
+		Vector3 center;
+
+		mstudio_meshvertexloddata_t vertexloddata;
+
+		int unk[2]; // set on load
+
+		int unused[6]; // remove as appropriate
+	};
+
+	struct mstudiomodel_t
+	{
+		char name[64];
+
+		int type;
+
+		float boundingradius;
+
+		int nummeshes;
+		int meshindex;
+
+		// cache purposes
+		int numvertices; // number of unique vertices/normals/texcoords
+		int vertexindex; // vertex Vector
+		// offset by vertexindex number of bytes into vvd verts
+		int tangentsindex; // tangents Vector
+		// offset by tangentsindex number of bytes into vvd tangents
+
+		int numattachments;
+		int attachmentindex;
+
+		int deprecated_numeyeballs;
+		int deprecated_eyeballindex;
+
+		int pad[4];
+
+		int colorindex; // vertex color
+		// offset by colorindex number of bytes into vvc vertex colors
+		int uv2index; // vertex second uv map
+		// offset by uv2index number of bytes into vvc secondary uv map
+
+		int unused[4];
+	};
+
+	struct mstudiotexture_t
+	{
+		int sznameindex;
+		int unused_flags;
+		int used; // whar?
+		int unused[8];
+	};
 }
 
 #define STRING_FROM_IDX(base, idx) reinterpret_cast<const char*>((char*)base + idx)
@@ -583,7 +680,6 @@ static char* WriteStringTable(char* pData)
 				strcpy_s(pData, length+1, it.string);
 
 				pData += length;
-
 			}
 
 			*pData = '\0';

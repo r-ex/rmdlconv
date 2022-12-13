@@ -114,6 +114,8 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones)
 	g_model.pHdr->boneindex = g_model.pData - g_model.pBase;
 	g_model.pData += numBones * sizeof(r5::v8::mstudiobone_t);
 
+	ALIGN4(g_model.pData);
+
 	if(proceduralBones.size() > 0)
 		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
 
@@ -156,6 +158,8 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones)
 
 		g_model.pData += sizeof(r5::v8::mstudiojigglebone_t);
 	}
+
+	ALIGN4(g_model.pData);
 }
 
 void ConvertAttachments_53(mstudioattachment_t* pOldAttachments, int numAttachments)
@@ -175,6 +179,162 @@ void ConvertAttachments_53(mstudioattachment_t* pOldAttachments, int numAttachme
 	}
 	g_model.pHdr->localattachmentindex = g_model.pData - g_model.pBase;
 	g_model.pData += numAttachments * sizeof(r5::v8::mstudioattachment_t);
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertHitboxes_53(mstudiohitboxset_t* pOldHitboxSets, int numHitboxSets)
+{
+	printf("converting %i hitboxsets...\n", numHitboxSets);
+
+	g_model.pHdr->hitboxsetindex = g_model.pData - g_model.pBase;
+
+	mstudiohitboxset_t* hboxsetStart = reinterpret_cast<mstudiohitboxset_t*>(g_model.pData);
+	for (int i = 0; i < numHitboxSets; ++i)
+	{
+		mstudiohitboxset_t* oldhboxset = &pOldHitboxSets[i];
+		mstudiohitboxset_t* newhboxset = reinterpret_cast<mstudiohitboxset_t*>(g_model.pData);
+
+		memcpy(g_model.pData, oldhboxset, sizeof(mstudiohitboxset_t));
+
+		AddToStringTable((char*)newhboxset, &newhboxset->sznameindex, STRING_FROM_IDX(oldhboxset, oldhboxset->sznameindex));
+
+		g_model.pData += sizeof(mstudiohitboxset_t);
+	}
+
+	for (int i = 0; i < numHitboxSets; ++i)
+	{
+		mstudiohitboxset_t* oldhboxset = &pOldHitboxSets[i];
+		mstudiohitboxset_t* newhboxset = hboxsetStart + i;
+
+		newhboxset->hitboxindex = g_model.pData - (char*)newhboxset;
+
+		r2::mstudiobbox_t* oldHitboxes = reinterpret_cast<r2::mstudiobbox_t*>((char*)oldhboxset + oldhboxset->hitboxindex);
+
+		for (int j = 0; j < newhboxset->numhitboxes; ++j)
+		{
+			r2::mstudiobbox_t* oldHitbox = oldHitboxes + j;
+			r5::v8::mstudiobbox_t* newHitbox = reinterpret_cast<r5::v8::mstudiobbox_t*>(g_model.pData);
+
+			memcpy(g_model.pData, oldHitbox, sizeof(r5::v8::mstudiobbox_t));
+
+			AddToStringTable((char*)newHitbox, &newHitbox->szhitboxnameindex, STRING_FROM_IDX(oldHitbox, oldHitbox->szhitboxnameindex));
+			AddToStringTable((char*)newHitbox, &newHitbox->keyvalueindex, STRING_FROM_IDX(oldHitbox, oldHitbox->keyvalueindex));
+
+			g_model.pData += sizeof(r5::v8::mstudiobbox_t);
+		}
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
+{
+	printf("converting %i bodyparts...\n", numBodyParts);
+
+	g_model.pHdr->bodypartindex = g_model.pData - g_model.pBase;
+
+	mstudiobodyparts_t* bodypartStart = reinterpret_cast<mstudiobodyparts_t*>(g_model.pData);
+	for (int i = 0; i < numBodyParts; ++i)
+	{
+		mstudiobodyparts_t* oldbodypart = &pOldBodyParts[i];
+		mstudiobodyparts_t* newbodypart = reinterpret_cast<mstudiobodyparts_t*>(g_model.pData);
+
+		memcpy(g_model.pData, oldbodypart, sizeof(mstudiobodyparts_t));
+
+		AddToStringTable((char*)newbodypart, &newbodypart->sznameindex, STRING_FROM_IDX(oldbodypart, oldbodypart->sznameindex));
+
+		g_model.pData += sizeof(mstudiobodyparts_t);
+	}
+
+	for (int i = 0; i < numBodyParts; ++i)
+	{
+		mstudiobodyparts_t* oldbodypart = &pOldBodyParts[i];
+		mstudiobodyparts_t* newbodypart = bodypartStart + i;
+
+		newbodypart->modelindex = g_model.pData - (char*)newbodypart;
+
+		// pointer to old models (in .mdl)
+		r2::mstudiomodel_t* oldModels = reinterpret_cast<r2::mstudiomodel_t*>((char*)oldbodypart + oldbodypart->modelindex);
+
+		// pointer to start of new model data (in .rmdl)
+		r5::v8::mstudiomodel_t* newModels = reinterpret_cast<r5::v8::mstudiomodel_t*>(g_model.pData);
+		for (int j = 0; j < newbodypart->nummodels; ++j)
+		{
+			r2::mstudiomodel_t* oldModel = oldModels + j;
+			r5::v8::mstudiomodel_t* newModel = reinterpret_cast<r5::v8::mstudiomodel_t*>(g_model.pData);
+
+			memcpy(&newModel->name, &oldModel->name, sizeof(newModel->name));
+			newModel->type = oldModel->type;
+			newModel->boundingradius = oldModel->boundingradius;
+			newModel->nummeshes = oldModel->nummeshes;
+			newModel->numvertices = oldModel->numvertices;
+			newModel->vertexindex = oldModel->vertexindex;
+			newModel->tangentsindex = oldModel->tangentsindex;
+			newModel->numattachments = oldModel->numattachments;
+			newModel->attachmentindex = oldModel->attachmentindex;
+			newModel->deprecated_numeyeballs = oldModel->deprecated_numeyeballs;
+			newModel->deprecated_eyeballindex = oldModel->deprecated_eyeballindex;
+			newModel->colorindex = oldModel->colorindex;
+			newModel->uv2index = oldModel->uv2index;
+
+			g_model.pData += sizeof(r5::v8::mstudiomodel_t);
+		}
+
+		for (int j = 0; j < newbodypart->nummodels; ++j)
+		{
+			r2::mstudiomodel_t* oldModel = oldModels + j;
+			r5::v8::mstudiomodel_t* newModel = newModels + j;
+
+			newModel->meshindex = g_model.pData - (char*)newModel;
+
+			// pointer to old meshes for this model (in .mdl)
+			r2::mstudiomesh_t* oldMeshes = reinterpret_cast<r2::mstudiomesh_t*>((char*)oldModel + oldModel->meshindex);
+
+			// pointer to new meshes for this model (in .rmdl)
+			r5::v8::mstudiomesh_t* newMeshes = reinterpret_cast<r5::v8::mstudiomesh_t*>(g_model.pData);
+
+			for (int k = 0; k < newModel->nummeshes; ++k)
+			{
+				r2::mstudiomesh_t* oldMesh = oldMeshes + k;
+				r5::v8::mstudiomesh_t* newMesh = newMeshes + k;
+
+				memcpy(newMesh, oldMesh, sizeof(r5::v8::mstudiomesh_t));
+
+				newMesh->modelindex = (char*)newModel - (char*)newMesh;
+
+				g_model.pData += sizeof(r5::v8::mstudiomesh_t);
+			}
+		}
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertTextures_53(r2::mstudiotexture_t* pOldTextures, int numTextures)
+{
+	printf("converting %i textures...\n", numTextures);
+
+	g_model.pHdr->textureindex = g_model.pData - g_model.pBase;
+	for (int i = 0; i < numTextures; ++i)
+	{
+		r2::mstudiotexture_t* oldTexture = &pOldTextures[i];
+
+		r5::v8::mstudiotexture_t* newTexture = reinterpret_cast<r5::v8::mstudiotexture_t*>(g_model.pData);
+
+		const char* textureName = STRING_FROM_IDX(oldTexture, oldTexture->sznameindex);
+		AddToStringTable((char*)newTexture, &newTexture->sznameindex, textureName);
+
+		if (!EndsWith(textureName, ".vmt"))
+		{
+			std::string texName = "material/" + std::string(textureName) + ".rpak";
+			newTexture->guid = HashString(texName.c_str());
+		}
+
+		g_model.pData += sizeof(r5::v8::mstudiotexture_t);
+	}
+
+	ALIGN4(g_model.pData);
 }
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
@@ -228,13 +388,6 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	std::string rmdlPath = ChangeExtension(filePath, "rmdl");
 	std::ofstream out(rmdlPath, std::ios::out | std::ios::binary);
 
-
-	// === convert old file structs to new mem structs ===
-	// 
-	// TODO[rexx]: investigate whether these can be written directly into the buf below
-	//             instead of being converted to mem structs first
-	//
-
 	// allocate temp file buffer
 	g_model.pBase = new char[FILEBUFSIZE]{};
 	g_model.pData = g_model.pBase;
@@ -252,11 +405,34 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader.unkstringindex));
 
+	// convert bones and jigglebones
 	input.seek(oldHeader.boneindex, rseekdir::beg);
 	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones);
 
+	// convert attachments
 	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
 	ConvertAttachments_53((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
+
+	// convert hitboxsets and hitboxes
+	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
+	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader.numhitboxsets);
+
+	// convert hitboxsets and hitboxes
+	input.seek(oldHeader.textureindex, rseekdir::beg);
+	ConvertTextures_53((r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
+
+	// copy bonebyname table (bone ids sorted alphabetically by name)
+	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
+	input.read(g_model.pData, g_model.pHdr->numbones);
+
+	g_model.pHdr->bonetablebynameindex = g_model.pData - g_model.pBase;
+	g_model.pData += g_model.pHdr->numbones;
+
+	ALIGN4(g_model.pData);
+
+	// convert bodyparts, models, and meshes
+	input.seek(oldHeader.bodypartindex, rseekdir::beg);
+	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader.numbodyparts);
 
 	g_model.pData = WriteStringTable(g_model.pData);
 
@@ -264,6 +440,8 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	out.write(g_model.pBase, pHdr->length);
 
+	// now that rmdl is fully converted, convert vtx/vvd/vvc to VG
+	CreateVGFile(ChangeExtension(filePath, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), vvcBuf.get(), nullptr);
 
 	delete[] g_model.pBase;
 	printf("Done!\n");

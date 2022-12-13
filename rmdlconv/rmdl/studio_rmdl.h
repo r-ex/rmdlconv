@@ -22,82 +22,12 @@ struct mstudio_meshvertexloddata_t
 	int numLODVertexes[MAX_NUM_LODS]; // depreciated starting with rmdl v14(?)
 };
 
-struct mstudiomesh_t_v54
-{
-	int material;
-
-	int modelindex;
-
-	int numvertices; // number of unique vertices/normals/texcoords
-	int vertexoffset; // vertex mstudiovertex_t
-
-	// Access thin/fat mesh vertex data (only one will return a non-NULL result)
-
-	int deprecated_numflexes; // vertex animation
-	int deprecated_flexindex;
-
-	// special codes for material operations
-	int deprecated_materialtype;
-	int deprecated_materialparam;
-
-	// a unique ordinal for this mesh
-	int meshid;
-
-	Vector3 center;
-
-	mstudio_meshvertexloddata_t vertexloddata;
-
-	int unk[2]; // these are suposed to be filled on load, however this isn't true??
-};
-
-struct mstudiomodel_t_v54
-{
-	char name[64];
-
-	int unkindex2; // goes to bones sometimes
-
-	int type;
-
-	float boundingradius;
-
-	int nummeshes;
-	int meshindex;
-
-	mstudiomesh_t_v54* mesh(int i)
-	{
-		return reinterpret_cast<mstudiomesh_t_v54*>((char*)this + meshindex) + i;
-	}
-
-	// cache purposes
-	int numvertices; // number of unique vertices/normals/texcoords
-	int vertexindex; // vertex Vector
-	int tangentsindex; // tangents Vector
-
-	int numattachments;
-	int attachmentindex;
-
-	int deprecated_numeyeballs;
-	int deprecated_eyeballindex;
-
-	int pad[4];
-
-	int colorindex; // vertex color
-					// offset by colorindex number of bytes into vvc vertex colors
-	int uv2index; // vertex second uv map
-				  // offset by uv2index number of bytes into vvc secondary uv map
-};
-
 struct mstudiobodyparts_t
 {
 	int sznameindex;
 	int nummodels;
 	int base;
 	int modelindex; // index into models array
-
-	mstudiomodel_t_v54* model(int i)
-	{
-		return reinterpret_cast<mstudiomodel_t_v54*>((char*)this + modelindex) + i;
-	}
 };
 
 namespace r5 // apex legends
@@ -392,6 +322,94 @@ namespace r5 // apex legends
 
 			matrix3x4_t localmatrix; // attachment point
 		};
+
+		struct mstudiomesh_t
+		{
+			int material;
+
+			int modelindex;
+
+			int numvertices; // number of unique vertices/normals/texcoords
+			int vertexoffset; // vertex mstudiovertex_t
+
+			// Access thin/fat mesh vertex data (only one will return a non-NULL result)
+
+			int deprecated_numflexes; // vertex animation
+			int deprecated_flexindex;
+
+			// special codes for material operations
+			int deprecated_materialtype;
+			int deprecated_materialparam;
+
+			// a unique ordinal for this mesh
+			int meshid;
+
+			Vector3 center;
+
+			mstudio_meshvertexloddata_t vertexloddata;
+
+			int unk[2]; // these are suposed to be filled on load, however this isn't true??
+		};
+
+		struct mstudiomodel_t
+		{
+			char name[64];
+
+			int unkindex2; // goes to bones sometimes
+
+			int type;
+
+			float boundingradius;
+
+			int nummeshes;
+			int meshindex;
+
+			mstudiomesh_t* mesh(int i)
+			{
+				return reinterpret_cast<mstudiomesh_t*>((char*)this + meshindex) + i;
+			}
+
+			// cache purposes
+			int numvertices; // number of unique vertices/normals/texcoords
+			int vertexindex; // vertex Vector
+			int tangentsindex; // tangents Vector
+
+			int numattachments;
+			int attachmentindex;
+
+			int deprecated_numeyeballs;
+			int deprecated_eyeballindex;
+
+			int pad[4];
+
+			int colorindex; // vertex color
+			// offset by colorindex number of bytes into vvc vertex colors
+			int uv2index; // vertex second uv map
+			// offset by uv2index number of bytes into vvc secondary uv map
+		};
+
+		struct mstudiobbox_t
+		{
+			int bone;
+			int group; // intersection group
+
+			Vector3 bbmin; // bounding box
+			Vector3 bbmax;
+
+			int szhitboxnameindex; // offset to the name of the hitbox.
+
+			int critoverride; // overrides the group to be a crit, 0 or 1. might be group override since group 1 is head.
+
+			int keyvalueindex; // used for keyvalues, most for titans.
+		};
+
+#pragma pack(push, 1)
+		struct mstudiotexture_t
+		{
+			int sznameindex;
+			unsigned __int64 guid;
+		};
+#pragma pack(pop)
 	}
 
 	namespace v121
