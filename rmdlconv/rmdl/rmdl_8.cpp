@@ -92,5 +92,5 @@ void CreateVGFile_v8(const std::string& filePath)
 		}
 	}
 
-	CreateVGFile(filePath, reinterpret_cast<r5::v8::studiohdr_t*>(rmdlBuf), vtxBuf, vvdBuf, vvcBuf, vvwBuf);
+	CreateVGFile(ChangeExtension(filePath, "vg"), reinterpret_cast<r5::v8::studiohdr_t*>(rmdlBuf), vtxBuf, vvdBuf, vvcBuf, vvwBuf);
 }
