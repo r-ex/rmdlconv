@@ -417,10 +417,6 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
 	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader.numhitboxsets);
 
-	// convert hitboxsets and hitboxes
-	input.seek(oldHeader.textureindex, rseekdir::beg);
-	ConvertTextures_53((r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
-
 	// copy bonebyname table (bone ids sorted alphabetically by name)
 	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
 	input.read(g_model.pData, g_model.pHdr->numbones);
@@ -429,6 +425,10 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pData += g_model.pHdr->numbones;
 
 	ALIGN4(g_model.pData);
+
+	// convert textures
+	input.seek(oldHeader.textureindex, rseekdir::beg);
+	ConvertTextures_53((r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
 
 	// convert bodyparts, models, and meshes
 	input.seek(oldHeader.bodypartindex, rseekdir::beg);
