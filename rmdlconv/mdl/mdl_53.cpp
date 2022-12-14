@@ -426,13 +426,13 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	ALIGN4(g_model.pData);
 
-	// convert textures
-	input.seek(oldHeader.textureindex, rseekdir::beg);
-	ConvertTextures_53((r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
-
 	// convert bodyparts, models, and meshes
 	input.seek(oldHeader.bodypartindex, rseekdir::beg);
 	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader.numbodyparts);
+
+	// convert textures
+	input.seek(oldHeader.textureindex, rseekdir::beg);
+	ConvertTextures_53((r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
 
 	g_model.pData = WriteStringTable(g_model.pData);
 
