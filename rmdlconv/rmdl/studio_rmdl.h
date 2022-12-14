@@ -753,6 +753,20 @@ struct ModelLODHeader_VG_t
 	float switchPoint;
 };
 
+enum MaterialShaderType_t : unsigned __int8
+{
+	RGDU = 0x0,
+	RGDP = 0x1,
+	RGDC = 0x2,
+	SKNU = 0x3,
+	SKNP = 0x4,
+	SKNC = 0x5,
+	WLDU = 0x6,
+	WLDC = 0x7,
+	PTCU = 0x8,
+	PTCS = 0x9,
+};
+
 uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4);
 uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
 

@@ -311,8 +311,9 @@ void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 	ALIGN4(g_model.pData);
 }
 
-void ConvertTextures_53(r2::mstudiotexture_t* pOldTextures, int numTextures)
+void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2::mstudiotexture_t* pOldTextures, int numTextures)
 {
+	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
 	printf("converting %i textures...\n", numTextures);
 
 	g_model.pHdr->textureindex = g_model.pData - g_model.pBase;
@@ -325,16 +326,58 @@ void ConvertTextures_53(r2::mstudiotexture_t* pOldTextures, int numTextures)
 		const char* textureName = STRING_FROM_IDX(oldTexture, oldTexture->sznameindex);
 		AddToStringTable((char*)newTexture, &newTexture->sznameindex, textureName);
 
-		if (!EndsWith(textureName, ".vmt"))
-		{
-			std::string texName = "material/" + std::string(textureName) + ".rpak";
-			newTexture->guid = HashString(texName.c_str());
-		}
+		std::string texName = "material/" + std::string(textureName) + ".rpak";
+		newTexture->guid = HashString(texName.c_str());
 
 		g_model.pData += sizeof(r5::v8::mstudiotexture_t);
 	}
 
 	ALIGN4(g_model.pData);
+
+	// Material Shader Types
+	// Used for the CMaterialSystem::FindMaterial call in CModelLoader::Studio_LoadModel
+	// Must be set properly otherwise the materials will not be found
+	g_model.pHdr->materialtypesindex = g_model.pData - g_model.pBase;
+
+	MaterialShaderType_t materialType = MaterialShaderType_t::SKNP;
+	if (g_model.pHdr->flags & STUDIOHDR_FLAGS_STATIC_PROP)
+		materialType = MaterialShaderType_t::RGDP;
+
+	memset(g_model.pData, materialType, numTextures);
+	g_model.pData += numTextures;
+
+	ALIGN4(g_model.pData); // align data to 4 bytes
+
+	// Write static cdtexture data
+	g_model.pHdr->cdtextureindex = g_model.pData - g_model.pBase;
+
+	// i think cdtextures are mostly unused in r5 so use empty string
+	AddToStringTable(g_model.pBase, (int*)g_model.pData, "");
+	g_model.pData += sizeof(int);
+
+}
+
+void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
+{
+	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
+	printf("converting %i skins (%i skinrefs)...\n", numSkinFamilies, numSkinRef);
+
+	g_model.pHdr->skinindex = g_model.pData - g_model.pBase;
+
+	int skinIndexDataSize = sizeof(__int16) * numSkinRef * numSkinFamilies;
+	memcpy(g_model.pData, pOldSkinData, skinIndexDataSize);
+	g_model.pData += skinIndexDataSize;
+
+	// write skin names
+	// skin 0 is unnamed
+	for (int i = 0; i < numSkinFamilies-1; ++i)
+	{
+		char* skinNameBuf = new char[32];
+		sprintf_s(skinNameBuf, 32, "skin%i", i);
+		AddToStringTable(g_model.pBase, (int*)g_model.pData, skinNameBuf);
+
+		g_model.pData += 4;
+	}
 }
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
@@ -401,7 +444,18 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	// init string table so we can use 
 	BeginStringTable();
 
-	AddToStringTable((char*)pHdr, &pHdr->sznameindex, STRING_FROM_IDX(buf, oldHeader.sznameindex));
+	std::string modelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
+
+	if (modelName.rfind("mdl/", 0) != 0)
+		modelName = "mdl/" + modelName;
+	if (EndsWith(modelName, ".mdl"))
+	{
+		modelName = modelName.substr(0, modelName.length() - 4);
+		modelName += ".rmdl";
+	}
+
+	memcpy_s(&pHdr->name, 64, modelName.c_str(), modelName.length());
+	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader.unkstringindex));
 
@@ -430,10 +484,17 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	input.seek(oldHeader.bodypartindex, rseekdir::beg);
 	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader.numbodyparts);
 
+	// get cdtextures pointer for converting textures
+	input.seek(oldHeader.cdtextureindex, rseekdir::beg);
+	void* pOldCDTextures = input.getPtr();
+
 	// convert textures
 	input.seek(oldHeader.textureindex, rseekdir::beg);
-	ConvertTextures_53((r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
+	ConvertTextures_53((mstudiotexturedir_t*)pOldCDTextures, oldHeader.numcdtextures, (r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
 
+
+	input.seek(oldHeader.skinindex, rseekdir::beg);
+	ConvertSkins_53((char*)input.getPtr(), oldHeader.numskinref, oldHeader.numskinfamilies);
 	g_model.pData = WriteStringTable(g_model.pData);
 
 	pHdr->length = g_model.pData - g_model.pBase;
