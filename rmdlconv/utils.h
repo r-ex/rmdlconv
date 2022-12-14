@@ -7,6 +7,10 @@
 
 #define FILE_EXISTS(path) std::filesystem::exists(path)
 
+#define IALIGN4( a ) ((a + 3) & ~ 3)
+
+
+// pointer alignment
 #define ALIGN4( a ) a = (byte *)((__int64)((byte *)a + 3) & ~ 3)
 #define ALIGN16( a ) a = (byte *)((__int64)((byte *)a + 15) & ~ 15)
 #define ALIGN32( a ) a = (byte *)((__int64)((byte *)a + 31) & ~ 31)

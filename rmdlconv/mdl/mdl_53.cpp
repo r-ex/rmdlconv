@@ -28,6 +28,9 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	out->hull_min = hdr.hull_min;
 	out->hull_max = hdr.hull_max;
 
+	out->mins = hdr.hull_min;
+	out->maxs = hdr.hull_max;
+
 	out->view_bbmin = hdr.view_bbmin;
 	out->view_bbmax = hdr.view_bbmax;
 
@@ -58,7 +61,11 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	out->numlocalposeparameters = hdr.numlocalposeparameters;
 	out->keyvaluesize = hdr.keyvaluesize;
 	out->numlocalikautoplaylocks = hdr.numlocalikautoplaylocks;
-	out->numincludemodels = hdr.numincludemodels;
+
+	out->numincludemodels = -1;
+
+	// why did i add this?
+	//out->numincludemodels = hdr.numincludemodels;
 
 	out->numsrcbonetransform = hdr.numsrcbonetransform;
 	//-| end count vars
@@ -378,6 +385,20 @@ void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
 
 		g_model.pData += 4;
 	}
+
+	ALIGN4(g_model.pData);
+
+}
+
+void TempHeaderFixups()
+{
+	r5::v8::studiohdr_t* hdr = g_model.pHdr;
+
+	hdr->numlocalanim = 0;
+	hdr->numlocalseq = 0;
+	hdr->numikchains = 0;
+	hdr->numlocalikautoplaylocks = 0;
+	hdr->numsrcbonetransform = 0;
 }
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
@@ -441,6 +462,8 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pHdr = pHdr;
 	g_model.pData += sizeof(r5::v8::studiohdr_t);
 
+	TempHeaderFixups();
+
 	// init string table so we can use 
 	BeginStringTable();
 
@@ -492,10 +515,20 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	input.seek(oldHeader.textureindex, rseekdir::beg);
 	ConvertTextures_53((mstudiotexturedir_t*)pOldCDTextures, oldHeader.numcdtextures, (r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
 
-
 	input.seek(oldHeader.skinindex, rseekdir::beg);
 	ConvertSkins_53((char*)input.getPtr(), oldHeader.numskinref, oldHeader.numskinfamilies);
+
+	std::string keyValues = "mdlkeyvalue{prop_data{base \"\"}}\n";
+	strcpy_s(g_model.pData, keyValues.length() + 1, keyValues.c_str());
+
+	pHdr->keyvalueindex = g_model.pData - g_model.pBase;
+	pHdr->keyvaluesize = IALIGN4(keyValues.length() + 1);
+
+	g_model.pData += keyValues.length() + 1;
+	ALIGN4(g_model.pData);
+
 	g_model.pData = WriteStringTable(g_model.pData);
+	ALIGN4(g_model.pData);
 
 	pHdr->length = g_model.pData - g_model.pBase;
 
