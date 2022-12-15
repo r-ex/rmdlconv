@@ -371,6 +371,40 @@ struct mstudiotexturedir_t
 	int sznameindex;
 };
 
+struct mstudiolinearbone_t
+{
+
+	int numbones;
+
+	int flagsindex;
+
+	int	parentindex;
+
+	int	posindex;
+
+	int quatindex;
+
+	int rotindex;
+
+	int posetoboneindex;
+
+	int	posscaleindex; // unused in v53
+
+	int	rotscaleindex;
+
+	int	qalignmentindex;
+
+	int unused[6];
+};
+
+struct mstudiosrcbonetransform_t
+{
+	int sznameindex;
+
+	matrix3x4_t	pretransform;
+	matrix3x4_t	posttransform;
+};
+
 namespace r2
 {
 	struct studiohdr_t

@@ -182,13 +182,19 @@ namespace r5 // apex legends
 
 			int linearboneindex;
 
-			// related to jiggle boesn now
-			int m_nBoneFlexDriverCount; // unsure if that's what it is in apex
-			int m_nBoneFlexDriverIndex;
-			int unkindexflex;
+			// unsure what this is for but it exists for jigglbones
+			int numprocbones;
+			int procbonetableindex;
+			int linearprocboneindex;
 
-			// aabb tree in here maybe? definitely unused
-			int unk1_v54[6];
+			// depreciated as they are removed in 12.1
+			int m_nBoneFlexDriverCount;
+			int m_nBoneFlexDriverIndex;
+
+			int m_nPerTriAABBIndex;
+			int m_nPerTriAABBNodeCount;
+			int m_nPerTriAABBLeafCount;
+			int m_nPerTriAABBVertCount;
 
 			// always "" or "Titan"
 			int unkstringindex;
@@ -410,6 +416,24 @@ namespace r5 // apex legends
 			unsigned __int64 guid;
 		};
 #pragma pack(pop)
+
+		struct mstudiolinearbone_t
+		{
+
+			int numbones;
+
+			int flagsindex;
+
+			int	parentindex;
+
+			int	posindex;
+
+			int quatindex;
+
+			int rotindex;
+
+			int posetoboneindex;
+		};
 	}
 
 	namespace v121

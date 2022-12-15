@@ -41,7 +41,7 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	out->numbones = hdr.numbones;
 	out->numbonecontrollers = hdr.numbonecontrollers;
 	out->numhitboxsets = hdr.numhitboxsets;
-	out->numlocalanim = hdr.numlocalanim;
+	out->numlocalanim = 0; // this is no longer used, force set to 0
 	out->numlocalseq = hdr.numlocalseq;
 	out->activitylistversion = hdr.activitylistversion;
 	// eventsindexed --> materialtypesindex
@@ -80,6 +80,18 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	out->fadeDistance = hdr.fadeDistance;
 	out->flVertAnimFixedPointScale = hdr.flVertAnimFixedPointScale;
 	//-| end misc vars
+
+	//-| begin for giggles
+	/*out->vtxindex = -1;
+	out->vvdindex = hdr.vtxsize;
+	out->vvcindex = hdr.vtxsize + hdr.vvdsize;
+	out->vphyindex = -123456;*/
+
+	out->vtxsize = hdr.vtxsize;
+	out->vvdsize = hdr.vvdsize;
+	out->vvcsize = hdr.vvcsize;
+	out->vphysize = hdr.vphysize;
+	//-| end for giggles
 }
 
 void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones)
@@ -390,15 +402,65 @@ void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
 
 }
 
+void ConvertSrcBoneTransforms(mstudiosrcbonetransform_t* pOldBoneTransforms, int numSrcBoneTransforms)
+{
+	printf("converting %i bone transforms...\n", numSrcBoneTransforms);
+
+	g_model.pHdr->srcbonetransformindex = g_model.pData - g_model.pBase;
+
+	for (int i = 0; i < numSrcBoneTransforms; i++)
+	{
+		mstudiosrcbonetransform_t* oldTransform = &pOldBoneTransforms[i];
+
+		mstudiosrcbonetransform_t* newTransform = reinterpret_cast<mstudiosrcbonetransform_t*>(g_model.pData);
+
+		const char* boneName = STRING_FROM_IDX(oldTransform, oldTransform->sznameindex);
+		AddToStringTable((char*)newTransform, &newTransform->sznameindex, boneName);
+
+		newTransform->pretransform = oldTransform->pretransform;
+		newTransform->posttransform = oldTransform->posttransform;
+
+		g_model.pData += sizeof(mstudiosrcbonetransform_t);
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertLinearBoneTable(mstudiolinearbone_t* pOldLinearBone, char* pOldLinearBoneTable)
+{
+	printf("converting linear bone table...\n");
+
+	g_model.pHdr->linearboneindex = g_model.pData - g_model.pBase;
+
+	r5::v8::mstudiolinearbone_t* newLinearBone = reinterpret_cast<r5::v8::mstudiolinearbone_t*>(g_model.pData);
+	g_model.pData += sizeof(r5::v8::mstudiolinearbone_t);
+
+	newLinearBone->numbones = pOldLinearBone->numbones;
+	newLinearBone->flagsindex = pOldLinearBone->flagsindex - 36;
+	newLinearBone->parentindex = pOldLinearBone->parentindex - 36;
+	newLinearBone->posindex = pOldLinearBone->posindex - 36;
+	newLinearBone->quatindex = pOldLinearBone->quatindex - 36;
+	newLinearBone->rotindex = pOldLinearBone->rotindex - 36;
+	newLinearBone->posetoboneindex = pOldLinearBone->posetoboneindex - 36;
+
+	// mult by two for: flags and parrents, rot and pos.
+	int tableSize = ((sizeof(int) * 2) + (sizeof(Vector3) * 2) + sizeof(Quaternion) + sizeof(matrix3x4_t)) * newLinearBone->numbones;
+
+	memcpy(g_model.pData, pOldLinearBoneTable, tableSize);
+	g_model.pData += tableSize;
+
+	ALIGN4(g_model.pData);
+}
+
 void TempHeaderFixups()
 {
 	r5::v8::studiohdr_t* hdr = g_model.pHdr;
 
-	hdr->numlocalanim = 0;
+	//hdr->numlocalanim = 0;
 	hdr->numlocalseq = 0;
 	hdr->numikchains = 0;
 	hdr->numlocalikautoplaylocks = 0;
-	hdr->numsrcbonetransform = 0;
+	//hdr->numsrcbonetransform = 0;
 }
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
@@ -526,6 +588,16 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	g_model.pData += keyValues.length() + 1;
 	ALIGN4(g_model.pData);
+
+	input.seek(oldHeader.srcbonetransformindex, rseekdir::beg);
+	ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader.numsrcbonetransform);
+
+	if (oldHeader.linearboneindex && oldHeader.numbones > 1)
+	{
+		input.seek(oldHeader.linearboneindex, rseekdir::beg);
+		ConvertLinearBoneTable((mstudiolinearbone_t*)input.getPtr(), (char*)input.getPtr() + sizeof(mstudiolinearbone_t));
+	}
+
 
 	g_model.pData = WriteStringTable(g_model.pData);
 	ALIGN4(g_model.pData);
