@@ -373,7 +373,6 @@ void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2:
 	// i think cdtextures are mostly unused in r5 so use empty string
 	AddToStringTable(g_model.pBase, (int*)g_model.pData, "");
 	g_model.pData += sizeof(int);
-
 }
 
 void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
@@ -398,6 +397,60 @@ void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
 		g_model.pData += 4;
 	}
 
+	ALIGN4(g_model.pData);
+}
+
+// i lied it doesnt convert anything it just creates a default ref anim
+void ConvertAnims_53()
+{
+	r5::v8::mstudioseqdesc_t* seqdesc = reinterpret_cast<r5::v8::mstudioseqdesc_t*>(g_model.pData);
+
+	g_model.pHdr->localseqindex = g_model.pData - g_model.pBase;
+	g_model.pHdr->numlocalseq = 1;
+
+	seqdesc->baseptr = 0;
+	AddToStringTable((char*)seqdesc, &seqdesc->szlabelindex, "ref");
+	AddToStringTable((char*)seqdesc, &seqdesc->szactivitynameindex, "");
+
+	seqdesc->activity = -1;
+
+	seqdesc->bbmin = g_model.pHdr->mins;
+	seqdesc->bbmax = g_model.pHdr->maxs;
+	seqdesc->groupsize[0] = 1;
+	seqdesc->groupsize[1] = 1;
+	seqdesc->paramindex[0] = -1;
+	seqdesc->paramindex[1] = -1;
+	seqdesc->fadeintime = 0.2;
+	seqdesc->fadeouttime = 0.2;
+
+	// needs to be adjusted if adding more than one anim
+	seqdesc->eventindex = sizeof(*seqdesc);
+	seqdesc->autolayerindex = sizeof(*seqdesc);
+	seqdesc->weightlistindex = sizeof(*seqdesc);
+
+	g_model.pData += sizeof(r5::v8::mstudioseqdesc_t);
+
+	// weightlist
+	for (int i = 0; i < g_model.pHdr->numbones; ++i)
+	{
+		*reinterpret_cast<float*>(g_model.pData) = 1.0f;
+		g_model.pData += sizeof(int);
+	}
+
+	seqdesc->animindexindex = g_model.pData - (char*)seqdesc;
+
+	// blend
+	*reinterpret_cast<int*>(g_model.pData) = seqdesc->animindexindex + sizeof(int);
+	g_model.pData += sizeof(int);
+
+	// add animdesc
+	r5::v8::mstudioanimdesc_t* animdesc = reinterpret_cast<r5::v8::mstudioanimdesc_t*>(g_model.pData);
+
+	AddToStringTable((char*)animdesc, &animdesc->sznameindex, "@ref");
+	animdesc->fps = 30;
+	animdesc->flags = STUDIO_ALLZEROS; // no way!!!
+
+	g_model.pData += sizeof(r5::v8::mstudioanimdesc_t);
 	ALIGN4(g_model.pData);
 
 }
@@ -564,6 +617,8 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pData += g_model.pHdr->numbones;
 
 	ALIGN4(g_model.pData);
+
+	ConvertAnims_53();
 
 	// convert bodyparts, models, and meshes
 	input.seek(oldHeader.bodypartindex, rseekdir::beg);

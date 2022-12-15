@@ -434,6 +434,82 @@ namespace r5 // apex legends
 
 			int posetoboneindex;
 		};
+
+		struct mstudioseqdesc_t
+		{
+			int baseptr;
+			int szlabelindex;
+			int szactivitynameindex;
+			int flags; // looping/non-looping flags
+			int activity; // initialized at loadtime to game DLL values
+			int actweight;
+			int numevents;
+			int eventindex;
+			Vector3 bbmin; // per sequence bounding box
+			Vector3 bbmax;
+			int numblends;
+			// Index into array of shorts which is groupsize[0] x groupsize[1] in length
+			int animindexindex;
+			int movementindex; // [blend] float array for blended movement
+			int groupsize[2];
+			int paramindex[2]; // X, Y, Z, XR, YR, ZR
+			float paramstart[2]; // local (0..1) starting value
+			float paramend[2]; // local (0..1) ending value
+			int paramparent;
+			float fadeintime; // ideal cross fate in time (0.2 default)
+			float fadeouttime; // ideal cross fade out time (0.2 default)
+			int localentrynode; // transition node at entry
+			int localexitnode; // transition node at exit
+			int nodeflags; // transition rules
+			float entryphase; // used to match entry gait
+			float exitphase; // used to match exit gait
+			float lastframe; // frame that should generation EndOfSequence
+			int nextseq; // auto advancing sequences
+			int pose; // index of delta animation between end and nextseq
+			int numikrules;
+			int numautolayers;
+			int autolayerindex;
+			int weightlistindex;
+			int posekeyindex;
+			int numiklocks;
+			int iklockindex;
+			// Key values
+			int keyvalueindex;
+			int keyvaluesize;
+			int cycleposeindex; // index of pose parameter to use as cycle index
+			int activitymodifierindex;
+			int numactivitymodifiers;
+			int ikResetMask; // new in v52
+			int unk1;
+			int unkindex;
+			int unkcount;
+		};
+
+		struct mstudioanimdesc_t
+		{
+			int baseptr;
+
+			int sznameindex;
+
+			float fps; // frames per second	
+			int flags; // looping/non-looping flags
+
+			int numframes;
+
+			// piecewise movement
+			int nummovements;
+			int movementindex;
+
+			int framemovementindex; // new in v52
+
+			int animindex; // non-zero when anim data isn't in sections
+
+			int numikrules;
+			int ikruleindex; // non-zero when IK data is stored in the mdl
+
+			int sectionindex;
+			int sectionframes; // number of frames used in each fast lookup section, zero if not used
+		};
 	}
 
 	namespace v121

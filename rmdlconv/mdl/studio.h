@@ -79,6 +79,32 @@
 // studiohdr_t::VertAnimFixedPointScale() to always retrieve the scale value
 #define STUDIOHDR_FLAGS_VERT_ANIM_FIXED_POINT_SCALE	0x200000
 
+// sequence and autolayer flags
+#define STUDIO_LOOPING	0x0001		// ending frame should be the same as the starting frame
+#define STUDIO_SNAP		0x0002		// do not interpolate between previous animation and this one
+#define STUDIO_DELTA	0x0004		// this sequence "adds" to the base sequences, not slerp blends
+#define STUDIO_AUTOPLAY	0x0008		// temporary flag that forces the sequence to always play
+#define STUDIO_POST		0x0010		// 
+#define STUDIO_ALLZEROS	0x0020		// this animation/sequence has no real animation data
+#define STUDIO_FRAMEANIM 0x0040		// animation is encoded as by frame x bone instead of RLE bone x frame
+#define STUDIO_CYCLEPOSE 0x0080		// cycle index is taken from a pose parameter index
+#define STUDIO_REALTIME	0x0100		// cycle index is taken from a real-time clock, not the animations cycle index
+#define STUDIO_LOCAL	0x0200		// sequence has a local context sequence
+#define STUDIO_HIDDEN	0x0400		// don't show in default selection views
+#define STUDIO_OVERRIDE	0x0800		// a forward declared sequence (empty)
+#define STUDIO_ACTIVITY	0x1000		// Has been updated at runtime to activity index
+#define STUDIO_EVENT	0x2000		// Has been updated at runtime to event index on server
+#define STUDIO_WORLD	0x4000		// sequence blends in worldspace
+#define STUDIO_NOFORCELOOP 0x8000	// do not force the animation loop
+#define STUDIO_EVENT_CLIENT 0x10000	// Has been updated at runtime to event index on client
+
+// new in respawn models
+#define STUDIO_ANIM_UNK3    0x0040  // used on something that is clearly not a frame anim in v54
+									// animseq/humans/class/heavy/mp_pilot_heavy_core/mp_pt_crypto_base_execution_heavy_victim.rseq
+#define STUDIO_ANIM_UNK		0x20000 // actually first in v52
+#define STUDIO_ANIM_UNK1	0x40000
+#define STUDIO_ANIM_UNK2	0x80000 // cherry blossom v53, levi in v54
+
 #pragma pack(push, 1)
 #define MAX_NUM_BONES_PER_VERT 3
 #define MAX_NUM_LODS 8
