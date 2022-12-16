@@ -683,7 +683,9 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	// init string table so we can use 
 	BeginStringTable();
 
-	std::string modelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
+	std::string originalModelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
+
+	std::string modelName = originalModelName;
 
 	if (modelName.rfind("mdl/", 0) != 0)
 		modelName = "mdl/" + modelName;
@@ -779,7 +781,9 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	///////////////
 	// ANIM RIGS //
 	///////////////
-	std::string rigName = modelName;
+	// TODO[rexx]: this ought to be moved to a separate function when possible
+
+	std::string rigName = originalModelName;
 	if (rigName.rfind("animrig/", 0) != 0)
 		rigName = "animrig/" + rigName;
 	if (EndsWith(rigName, ".mdl"))
