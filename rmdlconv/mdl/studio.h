@@ -392,6 +392,22 @@ struct mstudiohitboxset_t
 	int hitboxindex;
 };
 
+struct mstudioposeparamdesc_t
+{
+	int					sznameindex;
+	int					flags;	// ????
+	float				start;	// starting value
+	float				end;	// ending value
+	float				loop;	// looping range, 0 for no looping, 360 for rotations, etc.
+};
+
+struct mstudioiklink_t
+{
+	int bone;
+	Vector3	kneeDir; // ideal bending direction (per link, if applicable)
+	Vector3	unused0; // unused in v49
+};
+
 struct mstudiotexturedir_t
 {
 	int sznameindex;
@@ -737,6 +753,20 @@ namespace r2
 		// offset by uv2index number of bytes into vvc secondary uv map
 
 		int unused[4];
+	};
+
+	struct mstudioikchain_t
+	{
+		int sznameindex;
+
+		int linktype;
+		int numlinks;
+		int linkindex;
+
+		float unk; // no clue what this does tbh, tweaking it does nothing
+				   // default value: 0.707f
+
+		int unused[3]; // these get cut in apex so I can't imagine this is used
 	};
 
 	struct mstudiotexture_t

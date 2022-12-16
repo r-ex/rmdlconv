@@ -7,6 +7,7 @@
 
 #define FILE_EXISTS(path) std::filesystem::exists(path)
 
+#define IALIGN2( a ) ((a + 1) & ~ 1)
 #define IALIGN4( a ) ((a + 3) & ~ 3)
 
 

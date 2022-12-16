@@ -52,15 +52,18 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	out->numskinfamilies = hdr.numskinfamilies;
 	out->numbodyparts = hdr.numbodyparts;
 	out->numlocalattachments = hdr.numlocalattachments;
-	out->numlocalnodes = hdr.numlocalnodes;
+
+	// next few comments are mostly for rigs
+
+	//out->numlocalnodes = hdr.numlocalnodes;
 	
 	// skipping all the deprecated flex vars
 
-	out->numikchains = hdr.numikchains;
-	out->numruimeshes = hdr.numruimeshes;
-	out->numlocalposeparameters = hdr.numlocalposeparameters;
+	//out->numikchains = hdr.numikchains;
+	//out->numruimeshes = hdr.numruimeshes;
+	//out->numlocalposeparameters = hdr.numlocalposeparameters;
 	out->keyvaluesize = hdr.keyvaluesize;
-	out->numlocalikautoplaylocks = hdr.numlocalikautoplaylocks;
+	//out->numlocalikautoplaylocks = hdr.numlocalikautoplaylocks; // cut?
 
 	out->numincludemodels = -1;
 
@@ -94,7 +97,32 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
 	//-| end for giggles
 }
 
-void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones)
+void GenerateRigHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
+{
+	out->id = 'TSDI';
+	out->version = 54;
+
+	memcpy_s(out->name, 64, hdr.name, 64);\
+
+	out->numbones = hdr.numbones;
+	out->numbonecontrollers = hdr.numbonecontrollers;
+	out->numhitboxsets = hdr.numhitboxsets;
+	out->numlocalattachments = hdr.numlocalattachments;
+	out->numlocalnodes = hdr.numlocalnodes;
+	out->numikchains = hdr.numikchains;
+	out->numlocalposeparameters = hdr.numlocalposeparameters;
+
+	out->mass = hdr.mass;
+	out->contents = hdr.contents;
+
+	// hard to tell if the first three are required
+	out->constdirectionallightdot = hdr.constdirectionallightdot;
+	out->rootLOD = hdr.rootLOD;
+	out->numAllowedRootLODs = hdr.numAllowedRootLODs;
+	out->fadeDistance = hdr.fadeDistance;
+}
+
+void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 {
 	printf("converting %i bones...\n", numBones);
 	std::vector<r5::v8::mstudiobone_t*> proceduralBones;
@@ -120,20 +148,31 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones)
 		newBone->scale = oldBone->scale;
 		newBone->poseToBone = oldBone->poseToBone;
 		newBone->qAlignment = oldBone->qAlignment;
-		newBone->flags = oldBone->flags;
-		newBone->proctype = oldBone->proctype;
-		newBone->procindex = oldBone->procindex;
-		newBone->physicsbone = oldBone->physicsbone;
+		newBone->flags = oldBone->flags; // rigs should only have certain flags
+		//newBone->proctype = oldBone->proctype;
+		//newBone->procindex = oldBone->procindex;
+		//newBone->physicsbone = oldBone->physicsbone;
 		newBone->contents = oldBone->contents;
 		newBone->surfacepropLookup = oldBone->surfacepropLookup;
 
-		if(oldBone->proctype != 0)
-			proceduralBones.push_back(newBone);
+		if (!isRig)
+		{
+			newBone->proctype = oldBone->proctype;
+			newBone->procindex = oldBone->procindex;
+			newBone->physicsbone = oldBone->physicsbone;
+
+			if (oldBone->proctype != 0)
+				proceduralBones.push_back(newBone);
+		}
 	}
 	g_model.pHdr->boneindex = g_model.pData - g_model.pBase;
 	g_model.pData += numBones * sizeof(r5::v8::mstudiobone_t);
 
 	ALIGN4(g_model.pData);
+
+	// rigs do not have proc bones
+	if (isRig)
+		return;
 
 	if(proceduralBones.size() > 0)
 		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
@@ -330,6 +369,81 @@ void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 	ALIGN4(g_model.pData);
 }
 
+void ConvertPoseParams(mstudioposeparamdesc_t* pOldPoseParams, int numPoseParams, bool isRig)
+{
+	g_model.pHdr->localposeparamindex = g_model.pData - g_model.pBase;
+
+	if (!isRig)
+		return;
+
+	printf("converting %i poseparams...\n", numPoseParams);
+
+	for (int i = 0; i < numPoseParams; i++)
+	{
+		mstudioposeparamdesc_t* oldPose = &pOldPoseParams[i];
+		mstudioposeparamdesc_t* newPose = reinterpret_cast<mstudioposeparamdesc_t*>(g_model.pData);
+
+		AddToStringTable((char*)newPose, &newPose->sznameindex, STRING_FROM_IDX(oldPose, oldPose->sznameindex));
+
+		newPose->flags = oldPose->flags;
+		newPose->start = oldPose->start;
+		newPose->end = oldPose->end;
+		newPose->loop = oldPose->loop;
+
+		g_model.pData += sizeof(mstudioposeparamdesc_t);
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertIkChains_53(r2::mstudioikchain_t* pOldIkChains, int numIkChains, bool isRig)
+{
+	g_model.pHdr->ikchainindex = g_model.pData - g_model.pBase;
+
+	if (!isRig)
+		return;
+
+	printf("converting %i ikchains...\n", numIkChains);
+
+	int currentLinkCount = 0;
+	std::vector<r5::v8::mstudioiklink_t> ikLinks;
+
+	for (int i = 0; i < numIkChains; i++)
+	{
+		r2::mstudioikchain_t* oldChain = &pOldIkChains[i];
+		r5::v8::mstudioikchain_t* newChain = reinterpret_cast<r5::v8::mstudioikchain_t*>(g_model.pData);
+
+		AddToStringTable((char*)newChain, &newChain->sznameindex, STRING_FROM_IDX(oldChain, oldChain->sznameindex));
+
+		newChain->linktype = oldChain->linktype;
+		newChain->numlinks = oldChain->numlinks;
+		newChain->linkindex = (sizeof(r5::v8::mstudioiklink_t) * currentLinkCount) + (sizeof(r5::v8::mstudioikchain_t) * (numIkChains - i));
+		newChain->unk = oldChain->unk;
+
+		g_model.pData += sizeof(r5::v8::mstudioikchain_t);
+
+		currentLinkCount += oldChain->numlinks;
+	}
+
+	for (int i = 0; i < numIkChains; i++)
+	{
+		r2::mstudioikchain_t* oldChain = &pOldIkChains[i];
+
+		for (int linkIdx = 0; linkIdx < oldChain->numlinks; linkIdx++)
+		{
+			mstudioiklink_t* oldLink = PTR_FROM_IDX(mstudioiklink_t, oldChain, oldChain->linkindex);
+			r5::v8::mstudioiklink_t* newLink = reinterpret_cast<r5::v8::mstudioiklink_t*>(g_model.pData);
+
+			newLink->bone = oldLink->bone;
+			newLink->kneeDir = oldLink->kneeDir;
+
+			g_model.pData += sizeof(r5::v8::mstudioiklink_t);
+		}
+	}
+
+	ALIGN4(g_model.pData);
+}
+
 void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2::mstudiotexture_t* pOldTextures, int numTextures)
 {
 	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
@@ -505,17 +619,6 @@ void ConvertLinearBoneTable(mstudiolinearbone_t* pOldLinearBone, char* pOldLinea
 	ALIGN4(g_model.pData);
 }
 
-void TempHeaderFixups()
-{
-	r5::v8::studiohdr_t* hdr = g_model.pHdr;
-
-	//hdr->numlocalanim = 0;
-	hdr->numlocalseq = 0;
-	hdr->numikchains = 0;
-	hdr->numlocalikautoplaylocks = 0;
-	//hdr->numsrcbonetransform = 0;
-}
-
 #define FILEBUFSIZE (32 * 1024 * 1024)
 
 //
@@ -577,12 +680,11 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pHdr = pHdr;
 	g_model.pData += sizeof(r5::v8::studiohdr_t);
 
-	TempHeaderFixups();
-
 	// init string table so we can use 
 	BeginStringTable();
 
 	std::string modelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
+	std::string rigName = modelName;
 
 	if (modelName.rfind("mdl/", 0) != 0)
 		modelName = "mdl/" + modelName;
@@ -592,6 +694,14 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 		modelName += ".rmdl";
 	}
 
+	if (rigName.rfind("animrig/", 0) != 0)
+		rigName = "animrig/" + rigName;
+	if (EndsWith(rigName, ".mdl"))
+	{
+		rigName = rigName.substr(0, rigName.length() - 4);
+		rigName += ".rrig";
+	}
+
 	memcpy_s(&pHdr->name, 64, modelName.c_str(), modelName.length());
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
@@ -599,7 +709,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// convert bones and jigglebones
 	input.seek(oldHeader.boneindex, rseekdir::beg);
-	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones);
+	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones, false);
 
 	// convert attachments
 	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
@@ -624,6 +734,12 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	input.seek(oldHeader.bodypartindex, rseekdir::beg);
 	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader.numbodyparts);
 
+	input.seek(oldHeader.localposeparamindex, rseekdir::beg);
+	ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, false);
+
+	input.seek(oldHeader.ikchainindex, rseekdir::beg);
+	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader.numikchains, false);
+
 	// get cdtextures pointer for converting textures
 	input.seek(oldHeader.cdtextureindex, rseekdir::beg);
 	void* pOldCDTextures = input.getPtr();
@@ -639,7 +755,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	strcpy_s(g_model.pData, keyValues.length() + 1, keyValues.c_str());
 
 	pHdr->keyvalueindex = g_model.pData - g_model.pBase;
-	pHdr->keyvaluesize = IALIGN4(keyValues.length() + 1);
+	pHdr->keyvaluesize = IALIGN2(keyValues.length() + 1);
 
 	g_model.pData += keyValues.length() + 1;
 	ALIGN4(g_model.pData);
@@ -663,6 +779,62 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// now that rmdl is fully converted, convert vtx/vvd/vvc to VG
 	CreateVGFile(ChangeExtension(filePath, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), vvcBuf.get(), nullptr);
+
+	std::string rrigPath = ChangeExtension(filePath, "rrig");
+	std::ofstream rigOut(rrigPath, std::ios::out | std::ios::binary);
+
+	g_model.pBase = new char[FILEBUFSIZE] {};
+	g_model.pData = g_model.pBase;
+
+	// generate rig
+	pHdr = (r5::v8::studiohdr_t*)g_model.pData;
+	GenerateRigHdr(pHdr, oldHeader);
+	g_model.pHdr = pHdr;
+	g_model.pData += sizeof(r5::v8::studiohdr_t);
+
+	// init string table so we can use 
+	//BeginStringTable();
+	g_model.stringTable.clear();
+
+	memcpy_s(&pHdr->name, 64, rigName.c_str(), rigName.length());
+	AddToStringTable((char*)pHdr, &pHdr->sznameindex, rigName.c_str());
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader.unkstringindex));
+
+	// convert bones and jigglebones
+	input.seek(oldHeader.boneindex, rseekdir::beg);
+	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones, true);
+
+	// convert attachments
+	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
+	ConvertAttachments_53((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
+
+	// convert hitboxsets and hitboxes
+	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
+	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader.numhitboxsets);
+
+	// copy bonebyname table (bone ids sorted alphabetically by name)
+	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
+	input.read(g_model.pData, g_model.pHdr->numbones);
+
+	g_model.pHdr->bonetablebynameindex = g_model.pData - g_model.pBase;
+	g_model.pData += g_model.pHdr->numbones;
+
+	ALIGN4(g_model.pData);
+
+	input.seek(oldHeader.localposeparamindex, rseekdir::beg);
+	ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, true);
+
+	input.seek(oldHeader.ikchainindex, rseekdir::beg);
+	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader.numikchains, true);
+	ALIGN4(g_model.pData);
+
+	g_model.pData = WriteStringTable(g_model.pData);
+	ALIGN4(g_model.pData);
+
+	pHdr->length = g_model.pData - g_model.pBase;
+
+	rigOut.write(g_model.pBase, pHdr->length);
 
 	delete[] g_model.pBase;
 	printf("Done!\n");

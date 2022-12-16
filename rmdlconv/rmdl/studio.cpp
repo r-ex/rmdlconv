@@ -229,7 +229,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 							}
 
 							// set the actual weights
-							if (pHdr->flags & STUDIOHDR_FLAGS_COMPLEX_WEIGHTS)
+							if ((pHdr->flags & STUDIOHDR_FLAGS_COMPLEX_WEIGHTS) && pHdr->version == 54) // add version check just in case as we are reading off a header flag
 							{
 								// "complex" weights
 								newVert.m_BoneWeightsPacked.weight[1] = externalWeightIdx; // set this before so we can add for the next one
