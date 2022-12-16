@@ -675,7 +675,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pData = g_model.pBase;
 
 	// convert mdl hdr
-	r5::v8::studiohdr_t* pHdr = (r5::v8::studiohdr_t*)g_model.pData;
+	r5::v8::studiohdr_t* pHdr = reinterpret_cast<r5::v8::studiohdr_t*>(g_model.pData);
 	ConvertStudioHdr(pHdr, oldHeader);
 	g_model.pHdr = pHdr;
 	g_model.pData += sizeof(r5::v8::studiohdr_t);
@@ -684,7 +684,6 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	BeginStringTable();
 
 	std::string modelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
-	std::string rigName = modelName;
 
 	if (modelName.rfind("mdl/", 0) != 0)
 		modelName = "mdl/" + modelName;
@@ -692,14 +691,6 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	{
 		modelName = modelName.substr(0, modelName.length() - 4);
 		modelName += ".rmdl";
-	}
-
-	if (rigName.rfind("animrig/", 0) != 0)
-		rigName = "animrig/" + rigName;
-	if (EndsWith(rigName, ".mdl"))
-	{
-		rigName = rigName.substr(0, rigName.length() - 4);
-		rigName += ".rrig";
 	}
 
 	memcpy_s(&pHdr->name, 64, modelName.c_str(), modelName.length());
@@ -748,9 +739,11 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	input.seek(oldHeader.textureindex, rseekdir::beg);
 	ConvertTextures_53((mstudiotexturedir_t*)pOldCDTextures, oldHeader.numcdtextures, (r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
 
+	// convert skin data
 	input.seek(oldHeader.skinindex, rseekdir::beg);
 	ConvertSkins_53((char*)input.getPtr(), oldHeader.numskinref, oldHeader.numskinfamilies);
 
+	// write base keyvalues
 	std::string keyValues = "mdlkeyvalue{prop_data{base \"\"}}\n";
 	strcpy_s(g_model.pData, keyValues.length() + 1, keyValues.c_str());
 
@@ -760,6 +753,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pData += keyValues.length() + 1;
 	ALIGN4(g_model.pData);
 
+	// SrcBoneTransforms
 	input.seek(oldHeader.srcbonetransformindex, rseekdir::beg);
 	ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader.numsrcbonetransform);
 
@@ -768,7 +762,6 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 		input.seek(oldHeader.linearboneindex, rseekdir::beg);
 		ConvertLinearBoneTable((mstudiolinearbone_t*)input.getPtr(), (char*)input.getPtr() + sizeof(mstudiolinearbone_t));
 	}
-
 
 	g_model.pData = WriteStringTable(g_model.pData);
 	ALIGN4(g_model.pData);
@@ -780,6 +773,21 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	// now that rmdl is fully converted, convert vtx/vvd/vvc to VG
 	CreateVGFile(ChangeExtension(filePath, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), vvcBuf.get(), nullptr);
 
+	// now delete rmdl buffer so we can write the rig
+	delete[] g_model.pBase;
+
+	///////////////
+	// ANIM RIGS //
+	///////////////
+	std::string rigName = modelName;
+	if (rigName.rfind("animrig/", 0) != 0)
+		rigName = "animrig/" + rigName;
+	if (EndsWith(rigName, ".mdl"))
+	{
+		rigName = rigName.substr(0, rigName.length() - 4);
+		rigName += ".rrig";
+	}
+
 	std::string rrigPath = ChangeExtension(filePath, "rrig");
 	std::ofstream rigOut(rrigPath, std::ios::out | std::ios::binary);
 
@@ -787,13 +795,12 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	g_model.pData = g_model.pBase;
 
 	// generate rig
-	pHdr = (r5::v8::studiohdr_t*)g_model.pData;
+	pHdr = reinterpret_cast<r5::v8::studiohdr_t*>(g_model.pData);
 	GenerateRigHdr(pHdr, oldHeader);
 	g_model.pHdr = pHdr;
 	g_model.pData += sizeof(r5::v8::studiohdr_t);
 
-	// init string table so we can use 
-	//BeginStringTable();
+	// reset string table for rig
 	g_model.stringTable.clear();
 
 	memcpy_s(&pHdr->name, 64, rigName.c_str(), rigName.length());
