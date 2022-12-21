@@ -32,7 +32,7 @@ static void Error(const char* fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-static uintmax_t GetFileSize(std::string filename)
+static uintmax_t GetFileSize(const std::string& filename)
 {
 	try {
 		return std::filesystem::file_size(filename);

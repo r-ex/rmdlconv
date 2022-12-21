@@ -44,6 +44,22 @@ int main(int argc, char** argv)
 
 	switch(mdlVersion)
 	{
+	case 49:
+	{
+		uintmax_t mdlFileSize = GetFileSize(mdlPath);
+
+		mdlIn.seek(0, std::ios::beg);
+
+		char* mdlBuf = new char[mdlFileSize];
+
+		mdlIn.getReader()->read(mdlBuf, mdlFileSize);
+
+		ConvertMDLData_49(mdlBuf, mdlPath);
+
+		delete[] mdlBuf;
+
+		break;
+	}
 	case 53: // Titanfall 2
 	{
 		uintmax_t mdlFileSize = GetFileSize(mdlPath);

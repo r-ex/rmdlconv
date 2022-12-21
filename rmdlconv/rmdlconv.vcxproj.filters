@@ -42,10 +42,13 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="rmdl\studio.cpp">
-      <Filter>Source Files\rmdl</Filter>
-    </ClCompile>
     <ClCompile Include="mdl\mdl_53.cpp">
+      <Filter>Source Files\mdl</Filter>
+    </ClCompile>
+    <ClCompile Include="mdl\mdl_49.cpp">
+      <Filter>Source Files\mdl</Filter>
+    </ClCompile>
+    <ClCompile Include="mdl\studio.cpp">
       <Filter>Source Files\mdl</Filter>
     </ClCompile>
   </ItemGroup>

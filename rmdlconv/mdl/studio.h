@@ -415,7 +415,6 @@ struct mstudiotexturedir_t
 
 struct mstudiolinearbone_t
 {
-
 	int numbones;
 
 	int flagsindex;
@@ -445,6 +444,328 @@ struct mstudiosrcbonetransform_t
 
 	matrix3x4_t	pretransform;
 	matrix3x4_t	posttransform;
+};
+
+struct mstudioikchain_t
+{
+	int sznameindex;
+	int linktype;
+	int numlinks;
+	int linkindex;
+};
+
+struct mstudiotexture_t
+{
+	int						sznameindex;
+
+	int						flags;
+	int						used;
+	int						unused1;
+	int material;  // fixme: this needs to go away . .isn't used by the engine, but is used by studiomdl
+	int clientmaterial;	// gary, replace with client material pointer if used
+
+	int						unused[10];
+};
+
+struct mstudio_modelvertexdata_t
+{
+	// both void* but studiomdl is 32-bit
+	int pVertexData;
+	int pTangentData;
+};
+
+struct mstudio_meshvertexdata_t
+{
+	// indirection to this mesh's model's vertex data
+	int modelvertexdata;
+
+	// used for fixup calcs when culling top level lods
+	// expected number of mesh verts at desired lod
+	int numLODVertexes[MAX_NUM_LODS];
+};
+
+struct mstudiomesh_t
+{
+	int material;
+
+	int modelindex;
+
+	int numvertices;		// number of unique vertices/normals/texcoords
+	int vertexoffset;		// vertex mstudiovertex_t
+
+	int numflexes;			// vertex animation
+	int flexindex;
+
+	// special codes for material operations
+	int	materialtype;
+	int	materialparam;
+
+	// a unique ordinal for this mesh
+	int	meshid;
+
+	Vector3	center;
+
+	mstudio_meshvertexdata_t vertexdata;
+
+	int	unused[8]; // remove as appropriate
+};
+
+struct mstudiomodel_t
+{
+	char name[64];
+
+	int type;
+
+	float boundingradius;
+
+	int	nummeshes;
+	int	meshindex;
+	// cache purposes
+	int	numvertices;		// number of unique vertices/normals/texcoords
+	int	vertexindex;		// vertex Vector
+	int	tangentsindex;		// tangents Vector
+
+	int numattachments;
+	int attachmentindex;
+
+	int numeyeballs;
+	int eyeballindex;
+
+	mstudio_modelvertexdata_t vertexdata;
+
+	int unused[8];		// remove as appropriate
+};
+
+struct mstudiobbox_t
+{
+	int					bone;
+	int					group;				// intersection group
+	Vector3				bbmin;				// bounding box
+	Vector3				bbmax;
+	int					szhitboxnameindex;	// offset to the name of the hitbox.
+	int					unused[8];
+};
+
+struct mstudiobone_t
+{
+	int					sznameindex;
+
+	int		 			parent;		// parent bone
+	int					bonecontroller[6];	// bone controller index, -1 == none
+
+	// default values
+	Vector3				pos;
+	Quaternion			quat;
+	RadianEuler			rot;
+	// compression scale
+	Vector3				posscale;
+	Vector3				rotscale;
+
+	matrix3x4_t			poseToBone;
+	Quaternion			qAlignment;
+	int					flags;
+	int					proctype;
+	int					procindex;		// procedural rule
+	int			physicsbone;	// index into physically simulated bone
+
+	int					surfacepropidx;	// index into string tablefor property name
+
+	int					contents;		// See BSPFlags.h for the contents flags
+	int					surfacepropLookup;	// this index must be cached by the loader, not saved in the file
+	int					unused[7];		// remove as appropriate
+};
+
+struct studiohdr2_t
+{
+	// NOTE: For forward compat, make sure any methods in this struct
+	// are also available in studiohdr_t so no leaf code ever directly references
+	// a studiohdr2_t structure
+	int numsrcbonetransform;
+	int srcbonetransformindex;
+	inline mstudiosrcbonetransform_t* pSrcBoneTransforms() const { return (mstudiosrcbonetransform_t*)((byte*)this) + srcbonetransformindex; }
+
+	int	illumpositionattachmentindex;
+
+	float flMaxEyeDeflection;
+
+	int linearboneindex;
+	inline mstudiolinearbone_t* pLinearBones() const { return (linearboneindex) ? (mstudiolinearbone_t*)(((byte*)this) + linearboneindex) : NULL; }
+
+	int sznameindex;
+	inline char* pszName() const { return (char*)((byte*)this + sznameindex); };
+
+	int m_nBoneFlexDriverCount;
+	int m_nBoneFlexDriverIndex;
+
+	int reserved[56];
+};
+
+struct studiohdr_t
+{
+	int					id;
+	int					version;
+
+	long				checksum;		// this has to be the same in the phy and vtx files to load!
+
+	char				name[64];
+
+	int					length;
+
+	Vector3				eyeposition;	// ideal eye position
+
+	Vector3				illumposition;	// illumination center
+
+	Vector3				hull_min;		// ideal movement hull size
+	Vector3				hull_max;
+
+	Vector3				view_bbmin;		// clipping bounding box
+	Vector3				view_bbmax;
+
+	int					flags;
+
+	int					numbones;			// bones
+	int					boneindex;
+
+	int					numbonecontrollers;		// bone controllers
+	int					bonecontrollerindex;
+
+	int					numhitboxsets;
+	int					hitboxsetindex;
+
+	// file local animations? and sequences
+//private:
+	int					numlocalanim;			// animations/poses
+	int					localanimindex;		// animation descriptions
+
+	int					numlocalseq;				// sequences
+	int					localseqindex;
+
+	//private:
+	int			activitylistversion;	// initialization flag - have the sequences been indexed?
+	int			eventsindexed;
+
+	// raw textures
+	int					numtextures;
+	int					textureindex;
+
+	// raw textures search paths
+	int					numcdtextures;
+	int					cdtextureindex;
+
+	// replaceable textures tables
+	int					numskinref;
+	int					numskinfamilies;
+	int					skinindex;
+
+	int					numbodyparts;
+	int					bodypartindex;
+
+	// queryable attachable points
+//private:
+	int					numlocalattachments;
+	int					localattachmentindex;
+
+
+	// animation node to animation node transition graph
+	int					numlocalnodes;
+	int					localnodeindex;
+	int					localnodenameindex;
+
+	int					numflexdesc;
+	int					flexdescindex;
+
+	int					numflexcontrollers;
+	int					flexcontrollerindex;
+
+	int					numflexrules;
+	int					flexruleindex;
+
+	int					numikchains;
+	int					ikchainindex;
+
+	int					nummouths;
+	int					mouthindex;
+
+	//private:
+	int					numlocalposeparameters;
+	int					localposeparamindex;
+
+
+	int					surfacepropindex;
+
+
+	// Key values
+	int					keyvalueindex;
+	int					keyvaluesize;
+
+	int					numlocalikautoplaylocks;
+	int					localikautoplaylockindex;
+
+
+	// The collision model mass that jay wanted
+	float				mass;
+	int					contents;
+
+	// external animations, models, etc.
+	int					numincludemodels;
+	int					includemodelindex;
+
+	// implementation specific call to get a named model
+
+	// implementation specific back pointer to virtual data
+	int /* mutable void* */ virtualModel;
+
+	// for demand loaded animation blocks
+	int					szanimblocknameindex;
+
+	int					numanimblocks;
+	int					animblockindex;
+
+	int /* mutable void* */ animblockModel;
+
+	int					bonetablebynameindex;
+
+	// used by tools only that don't cache, but persist mdl's peer data
+	// engine uses virtualModel to back link to cache pointers
+	int /* void* */ pVertexBase;
+	int /* void* */ pIndexBase;
+
+	// if STUDIOHDR_FLAGS_CONSTANT_DIRECTIONAL_LIGHT_DOT is set,
+	// this value is used to calculate directional components of lighting 
+	// on static props
+	byte				constdirectionallightdot;
+
+	// set during load of mdl data to track *desired* lod configuration (not actual)
+	// the *actual* clamped root lod is found in studiohwdata
+	// this is stored here as a global store to ensure the staged loading matches the rendering
+	byte				rootLOD;
+
+	// set in the mdl data to specify that lod configuration should only allow first numAllowRootLODs
+	// to be set as root LOD:
+	//	numAllowedRootLODs = 0	means no restriction, any lod can be set as root lod.
+	//	numAllowedRootLODs = N	means that lod0 - lod(N-1) can be set as root lod, but not lodN or lower.
+	byte				numAllowedRootLODs;
+
+	byte				unused[1];
+
+	int					unused4;
+
+	int					numflexcontrollerui;
+	int					flexcontrolleruiindex;
+
+	float				flVertAnimFixedPointScale;
+	mutable int			surfacepropLookup;	// this index must be cached by the loader, not saved in the file
+
+	// FIXME: Remove when we up the model version. Move all fields of studiohdr2_t into studiohdr_t.
+	int					studiohdr2index;
+	studiohdr2_t* pStudioHdr2() const { return (studiohdr2_t*)(((byte*)this) + studiohdr2index); }
+
+	inline char* pszName() const{ return pStudioHdr2()->pszName(); };
+
+	// NOTE: No room to add stuff? Up the .mdl file format version 
+	// [and move all fields in studiohdr2_t into studiohdr_t and kill studiohdr2_t],
+	// or add your stuff to studiohdr2_t. See NumSrcBoneTransforms/SrcBoneTransform for the pattern to use.
+	int					unused2[1];
 };
 
 namespace r2
@@ -869,4 +1190,81 @@ static char* WriteStringTable(char* pData)
 	}
 
 	return pData;
+}
+
+static void ConvertPoseParams(mstudioposeparamdesc_t* pOldPoseParams, int numPoseParams, bool isRig)
+{
+	g_model.pHdr->localposeparamindex = g_model.pData - g_model.pBase;
+
+	if (!isRig)
+		return;
+
+	printf("converting %i poseparams...\n", numPoseParams);
+
+	for (int i = 0; i < numPoseParams; i++)
+	{
+		mstudioposeparamdesc_t* oldPose = &pOldPoseParams[i];
+		mstudioposeparamdesc_t* newPose = reinterpret_cast<mstudioposeparamdesc_t*>(g_model.pData);
+
+		AddToStringTable((char*)newPose, &newPose->sznameindex, STRING_FROM_IDX(oldPose, oldPose->sznameindex));
+
+		newPose->flags = oldPose->flags;
+		newPose->start = oldPose->start;
+		newPose->end = oldPose->end;
+		newPose->loop = oldPose->loop;
+
+		g_model.pData += sizeof(mstudioposeparamdesc_t);
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+static void ConvertSrcBoneTransforms(mstudiosrcbonetransform_t* pOldBoneTransforms, int numSrcBoneTransforms)
+{
+	printf("converting %i bone transforms...\n", numSrcBoneTransforms);
+
+	g_model.pHdr->srcbonetransformindex = g_model.pData - g_model.pBase;
+
+	for (int i = 0; i < numSrcBoneTransforms; i++)
+	{
+		mstudiosrcbonetransform_t* oldTransform = &pOldBoneTransforms[i];
+
+		mstudiosrcbonetransform_t* newTransform = reinterpret_cast<mstudiosrcbonetransform_t*>(g_model.pData);
+
+		const char* boneName = STRING_FROM_IDX(oldTransform, oldTransform->sznameindex);
+		AddToStringTable((char*)newTransform, &newTransform->sznameindex, boneName);
+
+		newTransform->pretransform = oldTransform->pretransform;
+		newTransform->posttransform = oldTransform->posttransform;
+
+		g_model.pData += sizeof(mstudiosrcbonetransform_t);
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+static void ConvertLinearBoneTable(mstudiolinearbone_t* pOldLinearBone, char* pOldLinearBoneTable)
+{
+	printf("converting linear bone table...\n");
+
+	g_model.pHdr->linearboneindex = g_model.pData - g_model.pBase;
+
+	r5::v8::mstudiolinearbone_t* newLinearBone = reinterpret_cast<r5::v8::mstudiolinearbone_t*>(g_model.pData);
+	g_model.pData += sizeof(r5::v8::mstudiolinearbone_t);
+
+	newLinearBone->numbones = pOldLinearBone->numbones;
+	newLinearBone->flagsindex = pOldLinearBone->flagsindex - 36;
+	newLinearBone->parentindex = pOldLinearBone->parentindex - 36;
+	newLinearBone->posindex = pOldLinearBone->posindex - 36;
+	newLinearBone->quatindex = pOldLinearBone->quatindex - 36;
+	newLinearBone->rotindex = pOldLinearBone->rotindex - 36;
+	newLinearBone->posetoboneindex = pOldLinearBone->posetoboneindex - 36;
+
+	// mult by two for: flags and parrents, rot and pos.
+	int tableSize = ((sizeof(int) * 2) + (sizeof(Vector3) * 2) + sizeof(Quaternion) + sizeof(matrix3x4_t)) * newLinearBone->numbones;
+
+	memcpy(g_model.pData, pOldLinearBoneTable, tableSize);
+	g_model.pData += tableSize;
+
+	ALIGN4(g_model.pData);
 }
