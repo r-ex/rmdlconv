@@ -1,7 +1,5 @@
 #include "stdafx.h"
 #include "CommandLine.h"
-#include <string.h>
-#include <cstdlib>
 
 CommandLine::CommandLine(int nArgsCount, char** args)
 {

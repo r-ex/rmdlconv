@@ -1,9 +1,7 @@
 #include "stdafx.h"
-#include "versions.h"
-#include "rmem.h"
 #include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
-#include "BinaryIO.h"
+#include "versions.h"
 
 /*
 	Type:    RMDL

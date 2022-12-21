@@ -1,9 +1,7 @@
 #include "stdafx.h"
-#include "versions.h"
-#include "rmem.h"
 #include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
-#include "BinaryIO.h"
+#include "versions.h"
 
 //
 // ConvertStudioHdr
@@ -174,7 +172,7 @@ void ConvertBones_49(mstudiobone_t* pOldBones, int numBones, bool isRig)
 	if (isRig)
 		return;
 
-	if(proceduralBones.size() > 0)
+	if (proceduralBones.size() > 0)
 		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
 
 	for (auto bone : proceduralBones)
@@ -522,7 +520,6 @@ void ConvertAnims_49()
 }
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
-
 
 //
 // ConvertMDLData_49

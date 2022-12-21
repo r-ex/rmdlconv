@@ -1,9 +1,7 @@
 #include "stdafx.h"
-
+#include "CommandLine.h"
 #include "versions.h"
 #include "utils.h"
-#include "CommandLine.h"
-#include "BinaryIO.h"
 
 const char* pszVersionHelpString = {
 	"Please input the version of your model:\n"
@@ -42,9 +40,9 @@ int main(int argc, char** argv)
 
 	int mdlVersion = mdlIn.read<int>();
 
-	switch(mdlVersion)
+	switch (mdlVersion)
 	{
-	case 49:
+	case MdlVersion::PORTAL2:
 	{
 		uintmax_t mdlFileSize = GetFileSize(mdlPath);
 
@@ -60,7 +58,7 @@ int main(int argc, char** argv)
 
 		break;
 	}
-	case 52:
+	case MdlVersion::TITANFALL:
 	{
 		uintmax_t mdlFileSize = GetFileSize(mdlPath);
 
@@ -76,7 +74,7 @@ int main(int argc, char** argv)
 
 		break;
 	}
-	case 53: // Titanfall 2
+	case MdlVersion::TITANFALL2:
 	{
 		uintmax_t mdlFileSize = GetFileSize(mdlPath);
 
@@ -92,13 +90,15 @@ int main(int argc, char** argv)
 
 		break;
 	}
-	case 54:
+	case MdlVersion::APEXLEGENDS:
 	{
 		// rmdl subversion
 		std::string version = "12.1";
 
 		if (cmdline.HasParam("-version"))
+		{
 			version = cmdline.GetParamValue("-version", "12.1");
+		}
 		else
 		{
 			std::cout << pszVersionHelpString;
@@ -137,10 +137,13 @@ int main(int argc, char** argv)
 		{
 			Error("version is not currently supported\n");
 		}
+
 		break;
 	}
 	}
 
 	if(!cmdline.HasParam("-nopause"))
 		std::system("pause");
+
+	return 0;
 }

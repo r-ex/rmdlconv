@@ -1,13 +1,13 @@
 #include "stdafx.h"
 #include "rmdl/studio_rmdl.h"
-#include <cassert>
-#include <mdl/studio.h>
-#include <map>
+#include "mdl/studio.h"
+#include "versions.h"
 
 uint32_t PackNormalTangent_UINT32(Vector3 normal, Vector4 tangent)
 {
 	return PackNormalTangent_UINT32(normal.x, normal.y, normal.z, tangent.w);
 }
+
 uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4)
 {
 	// normal 1 and normal 2
@@ -229,7 +229,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 							}
 
 							// set the actual weights
-							if ((pHdr->flags & STUDIOHDR_FLAGS_COMPLEX_WEIGHTS) && pHdr->version == 54) // add version check just in case as we are reading off a header flag
+							if ((pHdr->flags & STUDIOHDR_FLAGS_COMPLEX_WEIGHTS) && pHdr->version == MdlVersion::APEXLEGENDS) // add version check just in case as we are reading off a header flag
 							{
 								// "complex" weights
 								newVert.m_BoneWeightsPacked.weight[1] = externalWeightIdx; // set this before so we can add for the next one
@@ -374,6 +374,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 			tempLod.switchPoint = lods[i].switchPoint;
 			tempLod.meshCount = 0;
 		}
+
 		if (lods[i].meshCount == 0)
 			continue;
 

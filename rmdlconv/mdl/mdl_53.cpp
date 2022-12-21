@@ -1,125 +1,123 @@
 #include "stdafx.h"
-#include "versions.h"
-#include "rmem.h"
 #include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
-#include "BinaryIO.h"
+#include "versions.h"
 
 //
 // ConvertStudioHdr
 // Purpose: converts the mdl v53 (Titanfall 2) studiohdr_t struct to rmdl v8 compatible (Apex Legends Season 0-6)
-void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
+void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t* hdr)
 {
 	out->id = 'TSDI';
 	out->version = 54;
 	
-	out->checksum = hdr.checksum;
+	out->checksum = hdr->checksum;
 
 	// :)
 	if ((_time64(NULL) % 69420) == 0)
 		out->checksum = 0xDEADBEEF;
 
-	memcpy_s(out->name, 64, hdr.name, 64);
+	memcpy_s(out->name, 64, hdr->name, 64);
 
 	out->length = 0xbadf00d; // needs to be written later
 
-	out->eyeposition = hdr.eyeposition;
-	out->illumposition = hdr.illumposition;
-	out->hull_min = hdr.hull_min;
-	out->hull_max = hdr.hull_max;
+	out->eyeposition = hdr->eyeposition;
+	out->illumposition = hdr->illumposition;
+	out->hull_min = hdr->hull_min;
+	out->hull_max = hdr->hull_max;
 
-	out->mins = hdr.hull_min;
-	out->maxs = hdr.hull_max;
+	out->mins = hdr->hull_min;
+	out->maxs = hdr->hull_max;
 
-	out->view_bbmin = hdr.view_bbmin;
-	out->view_bbmax = hdr.view_bbmax;
+	out->view_bbmin = hdr->view_bbmin;
+	out->view_bbmax = hdr->view_bbmax;
 
 	// these will probably have to be modified at some point
-	out->flags = hdr.flags;
+	out->flags = hdr->flags;
 
 	//-| begin count vars
-	out->numbones = hdr.numbones;
-	out->numbonecontrollers = hdr.numbonecontrollers;
-	out->numhitboxsets = hdr.numhitboxsets;
+	out->numbones = hdr->numbones;
+	out->numbonecontrollers = hdr->numbonecontrollers;
+	out->numhitboxsets = hdr->numhitboxsets;
 	out->numlocalanim = 0; // this is no longer used, force set to 0
-	out->numlocalseq = hdr.numlocalseq;
-	out->activitylistversion = hdr.activitylistversion;
+	out->numlocalseq = hdr->numlocalseq;
+	out->activitylistversion = hdr->activitylistversion;
 	// eventsindexed --> materialtypesindex
 
-	out->numtextures = hdr.numtextures;
-	out->numcdtextures = hdr.numcdtextures;
-	out->numskinref = hdr.numskinref;
-	out->numskinfamilies = hdr.numskinfamilies;
-	out->numbodyparts = hdr.numbodyparts;
-	out->numlocalattachments = hdr.numlocalattachments;
+	out->numtextures = hdr->numtextures;
+	out->numcdtextures = hdr->numcdtextures;
+	out->numskinref = hdr->numskinref;
+	out->numskinfamilies = hdr->numskinfamilies;
+	out->numbodyparts = hdr->numbodyparts;
+	out->numlocalattachments = hdr->numlocalattachments;
 
 	// next few comments are mostly for rigs
 
-	//out->numlocalnodes = hdr.numlocalnodes;
+	//out->numlocalnodes = hdr->numlocalnodes;
 	
 	// skipping all the deprecated flex vars
 
-	//out->numikchains = hdr.numikchains;
-	//out->numruimeshes = hdr.numruimeshes;
-	//out->numlocalposeparameters = hdr.numlocalposeparameters;
-	out->keyvaluesize = hdr.keyvaluesize;
-	//out->numlocalikautoplaylocks = hdr.numlocalikautoplaylocks; // cut?
+	//out->numikchains = hdr->numikchains;
+	//out->numruimeshes = hdr->numruimeshes;
+	//out->numlocalposeparameters = hdr->numlocalposeparameters;
+	out->keyvaluesize = hdr->keyvaluesize;
+	//out->numlocalikautoplaylocks = hdr->numlocalikautoplaylocks; // cut?
 
 	out->numincludemodels = -1;
 
 	// why did i add this?
-	//out->numincludemodels = hdr.numincludemodels;
+	//out->numincludemodels = hdr->numincludemodels;
 
-	out->numsrcbonetransform = hdr.numsrcbonetransform;
+	out->numsrcbonetransform = hdr->numsrcbonetransform;
 	//-| end count vars
 
 	//-| begin misc vars
-	out->mass = hdr.mass;
-	out->contents = hdr.contents;
+	out->mass = hdr->mass;
+	out->contents = hdr->contents;
 
-	out->constdirectionallightdot = hdr.constdirectionallightdot;
-	out->rootLOD = hdr.rootLOD;
-	out->numAllowedRootLODs = hdr.numAllowedRootLODs;
-	out->fadeDistance = hdr.fadeDistance;
-	out->flVertAnimFixedPointScale = hdr.flVertAnimFixedPointScale;
+	out->constdirectionallightdot = hdr->constdirectionallightdot;
+	out->rootLOD = hdr->rootLOD;
+	out->numAllowedRootLODs = hdr->numAllowedRootLODs;
+	out->fadeDistance = hdr->fadeDistance;
+	out->flVertAnimFixedPointScale = hdr->flVertAnimFixedPointScale;
 	//-| end misc vars
 
 	//-| begin for giggles
 	/*out->vtxindex = -1;
-	out->vvdindex = hdr.vtxsize;
-	out->vvcindex = hdr.vtxsize + hdr.vvdsize;
+	out->vvdindex = hdr->vtxsize;
+	out->vvcindex = hdr->vtxsize + hdr->vvdsize;
 	out->vphyindex = -123456;*/
 
-	out->vtxsize = hdr.vtxsize;
-	out->vvdsize = hdr.vvdsize;
-	out->vvcsize = hdr.vvcsize;
-	out->vphysize = hdr.vphysize;
+	out->vtxsize = hdr->vtxsize;
+	out->vvdsize = hdr->vvdsize;
+	out->vvcsize = hdr->vvcsize;
+	out->vphysize = hdr->vphysize;
 	//-| end for giggles
 }
 
-void GenerateRigHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t& hdr)
+void GenerateRigHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t* hdr)
 {
 	out->id = 'TSDI';
 	out->version = 54;
 
-	memcpy_s(out->name, 64, hdr.name, 64);\
+	memcpy_s(out->name, 64, hdr->name, 64);\
 
-	out->numbones = hdr.numbones;
-	out->numbonecontrollers = hdr.numbonecontrollers;
-	out->numhitboxsets = hdr.numhitboxsets;
-	out->numlocalattachments = hdr.numlocalattachments;
-	out->numlocalnodes = hdr.numlocalnodes;
-	out->numikchains = hdr.numikchains;
-	out->numlocalposeparameters = hdr.numlocalposeparameters;
+	out->numbones = hdr->numbones;
+	out->numbonecontrollers = hdr->numbonecontrollers;
+	out->numhitboxsets = hdr->numhitboxsets;
+	out->numlocalattachments = hdr->numlocalattachments;
+	out->numlocalnodes = hdr->numlocalnodes;
+	out->numikchains = hdr->numikchains;
+	out->numlocalposeparameters = hdr->numlocalposeparameters;
 
-	out->mass = hdr.mass;
-	out->contents = hdr.contents;
+	out->mass = hdr->mass;
+	out->contents = hdr->contents;
 
 	// hard to tell if the first three are required
-	out->constdirectionallightdot = hdr.constdirectionallightdot;
-	out->rootLOD = hdr.rootLOD;
-	out->numAllowedRootLODs = hdr.numAllowedRootLODs;
-	out->fadeDistance = hdr.fadeDistance;
+	out->constdirectionallightdot = hdr->constdirectionallightdot;
+	out->rootLOD = hdr->rootLOD;
+	out->numAllowedRootLODs = hdr->numAllowedRootLODs;
+	out->fadeDistance = hdr->fadeDistance;
 }
 
 void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
@@ -174,7 +172,7 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 	if (isRig)
 		return;
 
-	if(proceduralBones.size() > 0)
+	if (proceduralBones.size() > 0)
 		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
 
 	for (auto bone : proceduralBones)
@@ -531,42 +529,42 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 {
 	rmem input(buf);
 
-	r2::studiohdr_t oldHeader = input.read<r2::studiohdr_t>();
+	r2::studiohdr_t* oldHeader = input.get<r2::studiohdr_t>();
 
 	std::unique_ptr<char[]> vtxBuf;
-	if (oldHeader.vtxsize > 0)
+	if (oldHeader->vtxsize > 0)
 	{
-		vtxBuf = std::unique_ptr<char[]>(new char[oldHeader.vtxsize]);
+		vtxBuf = std::unique_ptr<char[]>(new char[oldHeader->vtxsize]);
 
-		input.seek(oldHeader.vtxindex, rseekdir::beg);
-		input.read(vtxBuf.get(), oldHeader.vtxsize);
+		input.seek(oldHeader->vtxindex, rseekdir::beg);
+		input.read(vtxBuf.get(), oldHeader->vtxsize);
 	}
 
 	std::unique_ptr<char[]> vvdBuf;
-	if (oldHeader.vvdsize > 0)
+	if (oldHeader->vvdsize > 0)
 	{
-		vvdBuf = std::unique_ptr<char[]>(new char[oldHeader.vvdsize]);
+		vvdBuf = std::unique_ptr<char[]>(new char[oldHeader->vvdsize]);
 
-		input.seek(oldHeader.vvdindex, rseekdir::beg);
-		input.read(vvdBuf.get(), oldHeader.vvdsize);
+		input.seek(oldHeader->vvdindex, rseekdir::beg);
+		input.read(vvdBuf.get(), oldHeader->vvdsize);
 	}
 
 	std::unique_ptr<char[]> vphyBuf;
-	if (oldHeader.vphysize > 0)
+	if (oldHeader->vphysize > 0)
 	{
-		vphyBuf = std::unique_ptr<char[]>(new char[oldHeader.vphysize]);
+		vphyBuf = std::unique_ptr<char[]>(new char[oldHeader->vphysize]);
 
-		input.seek(oldHeader.vphyindex, rseekdir::beg);
-		input.read(vphyBuf.get(), oldHeader.vphysize);
+		input.seek(oldHeader->vphyindex, rseekdir::beg);
+		input.read(vphyBuf.get(), oldHeader->vphysize);
 	}
 
 	std::unique_ptr<char[]> vvcBuf;
-	if (oldHeader.vvcsize > 0)
+	if (oldHeader->vvcsize > 0)
 	{
-		vvcBuf = std::unique_ptr<char[]>(new char[oldHeader.vvcsize]);
+		vvcBuf = std::unique_ptr<char[]>(new char[oldHeader->vvcsize]);
 
-		input.seek(oldHeader.vvcindex, rseekdir::beg);
-		input.read(vvcBuf.get(), oldHeader.vvcsize);
+		input.seek(oldHeader->vvcindex, rseekdir::beg);
+		input.read(vvcBuf.get(), oldHeader->vvcsize);
 	}
 
 	std::string rmdlPath = ChangeExtension(filePath, "rmdl");
@@ -585,7 +583,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	// init string table so we can use 
 	BeginStringTable();
 
-	std::string originalModelName = STRING_FROM_IDX(buf, oldHeader.sznameindex);
+	std::string originalModelName = STRING_FROM_IDX(buf, oldHeader->sznameindex);
 
 	std::string modelName = originalModelName;
 
@@ -599,23 +597,23 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	memcpy_s(&pHdr->name, 64, modelName.c_str(), modelName.length());
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader.unkstringindex));
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader->unkstringindex));
 
 	// convert bones and jigglebones
-	input.seek(oldHeader.boneindex, rseekdir::beg);
-	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones, false);
+	input.seek(oldHeader->boneindex, rseekdir::beg);
+	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader->numbones, false);
 
 	// convert attachments
-	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
-	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
+	input.seek(oldHeader->localattachmentindex, rseekdir::beg);
+	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader->numlocalattachments);
 
 	// convert hitboxsets and hitboxes
-	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
-	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader.numhitboxsets);
+	input.seek(oldHeader->hitboxsetindex, rseekdir::beg);
+	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader->numhitboxsets);
 
 	// copy bonebyname table (bone ids sorted alphabetically by name)
-	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
+	input.seek(oldHeader->bonetablebynameindex, rseekdir::beg);
 	input.read(g_model.pData, g_model.hdrV54()->numbones);
 
 	g_model.hdrV54()->bonetablebynameindex = g_model.pData - g_model.pBase;
@@ -626,26 +624,26 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	ConvertAnims_53();
 
 	// convert bodyparts, models, and meshes
-	input.seek(oldHeader.bodypartindex, rseekdir::beg);
-	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader.numbodyparts);
+	input.seek(oldHeader->bodypartindex, rseekdir::beg);
+	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader->numbodyparts);
 
-	input.seek(oldHeader.localposeparamindex, rseekdir::beg);
-	g_model.hdrV54()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, false);
+	input.seek(oldHeader->localposeparamindex, rseekdir::beg);
+	g_model.hdrV54()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader->numlocalposeparameters, false);
 
-	input.seek(oldHeader.ikchainindex, rseekdir::beg);
-	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader.numikchains, false);
+	input.seek(oldHeader->ikchainindex, rseekdir::beg);
+	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader->numikchains, false);
 
 	// get cdtextures pointer for converting textures
-	input.seek(oldHeader.cdtextureindex, rseekdir::beg);
+	input.seek(oldHeader->cdtextureindex, rseekdir::beg);
 	void* pOldCDTextures = input.getPtr();
 
 	// convert textures
-	input.seek(oldHeader.textureindex, rseekdir::beg);
-	ConvertTextures_53((mstudiotexturedir_t*)pOldCDTextures, oldHeader.numcdtextures, (r2::mstudiotexture_t*)input.getPtr(), oldHeader.numtextures);
+	input.seek(oldHeader->textureindex, rseekdir::beg);
+	ConvertTextures_53((mstudiotexturedir_t*)pOldCDTextures, oldHeader->numcdtextures, (r2::mstudiotexture_t*)input.getPtr(), oldHeader->numtextures);
 
 	// convert skin data
-	input.seek(oldHeader.skinindex, rseekdir::beg);
-	ConvertSkins_53((char*)input.getPtr(), oldHeader.numskinref, oldHeader.numskinfamilies);
+	input.seek(oldHeader->skinindex, rseekdir::beg);
+	ConvertSkins_53((char*)input.getPtr(), oldHeader->numskinref, oldHeader->numskinfamilies);
 
 	// write base keyvalues
 	std::string keyValues = "mdlkeyvalue{prop_data{base \"\"}}\n";
@@ -658,12 +656,12 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	ALIGN4(g_model.pData);
 
 	// SrcBoneTransforms
-	input.seek(oldHeader.srcbonetransformindex, rseekdir::beg);
-	g_model.hdrV54()->srcbonetransformindex = ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader.numsrcbonetransform);
+	input.seek(oldHeader->srcbonetransformindex, rseekdir::beg);
+	g_model.hdrV54()->srcbonetransformindex = ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader->numsrcbonetransform);
 
-	if (oldHeader.linearboneindex && oldHeader.numbones > 1)
+	if (oldHeader->linearboneindex && oldHeader->numbones > 1)
 	{
-		input.seek(oldHeader.linearboneindex, rseekdir::beg);
+		input.seek(oldHeader->linearboneindex, rseekdir::beg);
 		ConvertLinearBoneTableTo54((mstudiolinearbone_t*)input.getPtr(), (char*)input.getPtr() + sizeof(mstudiolinearbone_t));
 	}
 
@@ -711,23 +709,23 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	memcpy_s(&pHdr->name, 64, rigName.c_str(), rigName.length());
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, rigName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader.surfacepropindex));
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader.unkstringindex));
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader->unkstringindex));
 
 	// convert bones and jigglebones
-	input.seek(oldHeader.boneindex, rseekdir::beg);
-	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader.numbones, true);
+	input.seek(oldHeader->boneindex, rseekdir::beg);
+	ConvertBones_53((r2::mstudiobone_t*)input.getPtr(), oldHeader->numbones, true);
 
 	// convert attachments
-	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
-	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
+	input.seek(oldHeader->localattachmentindex, rseekdir::beg);
+	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader->numlocalattachments);
 
 	// convert hitboxsets and hitboxes
-	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
-	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader.numhitboxsets);
+	input.seek(oldHeader->hitboxsetindex, rseekdir::beg);
+	ConvertHitboxes_53((mstudiohitboxset_t*)input.getPtr(), oldHeader->numhitboxsets);
 
 	// copy bonebyname table (bone ids sorted alphabetically by name)
-	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
+	input.seek(oldHeader->bonetablebynameindex, rseekdir::beg);
 	input.read(g_model.pData, g_model.hdrV54()->numbones);
 
 	g_model.hdrV54()->bonetablebynameindex = g_model.pData - g_model.pBase;
@@ -735,11 +733,11 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	ALIGN4(g_model.pData);
 
-	input.seek(oldHeader.localposeparamindex, rseekdir::beg);
-	g_model.hdrV54()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, true);
+	input.seek(oldHeader->localposeparamindex, rseekdir::beg);
+	g_model.hdrV54()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader->numlocalposeparameters, true);
 
-	input.seek(oldHeader.ikchainindex, rseekdir::beg);
-	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader.numikchains, true);
+	input.seek(oldHeader->ikchainindex, rseekdir::beg);
+	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader->numikchains, true);
 	ALIGN4(g_model.pData);
 
 	g_model.pData = WriteStringTable(g_model.pData);
