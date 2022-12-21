@@ -15,6 +15,7 @@
 #define VG_PACKED_WEIGHTS   0x5000
 #define VG_UV_LAYER2        0x200000000 // see: STUDIOHDR_FLAGS_USES_UV2
 
+// added in r1, used in v52, v53, and v54
 struct mstudio_meshvertexloddata_t
 {
 	int modelvertexdataUnusedPad; // likely has none of the funny stuff because unused

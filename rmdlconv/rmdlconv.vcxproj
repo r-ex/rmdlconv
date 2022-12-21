@@ -146,6 +146,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="mdl\mdl_49.cpp" />
+    <ClCompile Include="mdl\mdl_52.cpp" />
     <ClCompile Include="mdl\mdl_53.cpp" />
     <ClCompile Include="mdl\studio.cpp" />
     <ClCompile Include="rmdl\rmdl_121.cpp">

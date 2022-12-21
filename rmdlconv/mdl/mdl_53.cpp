@@ -165,7 +165,7 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 				proceduralBones.push_back(newBone);
 		}
 	}
-	g_model.pHdr->boneindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->boneindex = g_model.pData - g_model.pBase;
 	g_model.pData += numBones * sizeof(r5::v8::mstudiobone_t);
 
 	ALIGN4(g_model.pData);
@@ -220,32 +220,11 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 	ALIGN4(g_model.pData);
 }
 
-void ConvertAttachments_53(mstudioattachment_t* pOldAttachments, int numAttachments)
-{
-	printf("converting %i attachments...\n", numAttachments);
-
-	for (int i = 0; i < numAttachments; ++i)
-	{
-		mstudioattachment_t* oldAttach = &pOldAttachments[i];
-
-		r5::v8::mstudioattachment_t* attach = reinterpret_cast<r5::v8::mstudioattachment_t*>(g_model.pData) + i;
-
-		AddToStringTable((char*)attach, &attach->sznameindex, STRING_FROM_IDX(oldAttach, oldAttach->sznameindex));
-		attach->flags = oldAttach->flags;
-		attach->localbone = oldAttach->localbone;
-		memcpy(&attach->localmatrix, &oldAttach->localmatrix, sizeof(oldAttach->localmatrix));
-	}
-	g_model.pHdr->localattachmentindex = g_model.pData - g_model.pBase;
-	g_model.pData += numAttachments * sizeof(r5::v8::mstudioattachment_t);
-
-	ALIGN4(g_model.pData);
-}
-
 void ConvertHitboxes_53(mstudiohitboxset_t* pOldHitboxSets, int numHitboxSets)
 {
 	printf("converting %i hitboxsets...\n", numHitboxSets);
 
-	g_model.pHdr->hitboxsetindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->hitboxsetindex = g_model.pData - g_model.pBase;
 
 	mstudiohitboxset_t* hboxsetStart = reinterpret_cast<mstudiohitboxset_t*>(g_model.pData);
 	for (int i = 0; i < numHitboxSets; ++i)
@@ -290,7 +269,7 @@ void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 {
 	printf("converting %i bodyparts...\n", numBodyParts);
 
-	g_model.pHdr->bodypartindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->bodypartindex = g_model.pData - g_model.pBase;
 
 	mstudiobodyparts_t* bodypartStart = reinterpret_cast<mstudiobodyparts_t*>(g_model.pData);
 	for (int i = 0; i < numBodyParts; ++i)
@@ -313,13 +292,13 @@ void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 		newbodypart->modelindex = g_model.pData - (char*)newbodypart;
 
 		// pointer to old models (in .mdl)
-		r2::mstudiomodel_t* oldModels = reinterpret_cast<r2::mstudiomodel_t*>((char*)oldbodypart + oldbodypart->modelindex);
+		r1::mstudiomodel_t* oldModels = reinterpret_cast<r1::mstudiomodel_t*>((char*)oldbodypart + oldbodypart->modelindex);
 
 		// pointer to start of new model data (in .rmdl)
 		r5::v8::mstudiomodel_t* newModels = reinterpret_cast<r5::v8::mstudiomodel_t*>(g_model.pData);
 		for (int j = 0; j < newbodypart->nummodels; ++j)
 		{
-			r2::mstudiomodel_t* oldModel = oldModels + j;
+			r1::mstudiomodel_t* oldModel = oldModels + j;
 			r5::v8::mstudiomodel_t* newModel = reinterpret_cast<r5::v8::mstudiomodel_t*>(g_model.pData);
 
 			memcpy(&newModel->name, &oldModel->name, sizeof(newModel->name));
@@ -341,7 +320,7 @@ void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 
 		for (int j = 0; j < newbodypart->nummodels; ++j)
 		{
-			r2::mstudiomodel_t* oldModel = oldModels + j;
+			r1::mstudiomodel_t* oldModel = oldModels + j;
 			r5::v8::mstudiomodel_t* newModel = newModels + j;
 
 			newModel->meshindex = g_model.pData - (char*)newModel;
@@ -371,7 +350,7 @@ void ConvertBodyParts_53(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 
 void ConvertIkChains_53(r2::mstudioikchain_t* pOldIkChains, int numIkChains, bool isRig)
 {
-	g_model.pHdr->ikchainindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->ikchainindex = g_model.pData - g_model.pBase;
 
 	if (!isRig)
 		return;
@@ -404,7 +383,7 @@ void ConvertIkChains_53(r2::mstudioikchain_t* pOldIkChains, int numIkChains, boo
 
 		for (int linkIdx = 0; linkIdx < oldChain->numlinks; linkIdx++)
 		{
-			mstudioiklink_t* oldLink = PTR_FROM_IDX(mstudioiklink_t, oldChain, oldChain->linkindex);
+			mstudioiklink_t* oldLink = PTR_FROM_IDX(mstudioiklink_t, oldChain, oldChain->linkindex + (sizeof(mstudioiklink_t) * linkIdx));
 			r5::v8::mstudioiklink_t* newLink = reinterpret_cast<r5::v8::mstudioiklink_t*>(g_model.pData);
 
 			newLink->bone = oldLink->bone;
@@ -422,7 +401,7 @@ void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2:
 	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
 	printf("converting %i textures...\n", numTextures);
 
-	g_model.pHdr->textureindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->textureindex = g_model.pData - g_model.pBase;
 	for (int i = 0; i < numTextures; ++i)
 	{
 		r2::mstudiotexture_t* oldTexture = &pOldTextures[i];
@@ -443,10 +422,10 @@ void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2:
 	// Material Shader Types
 	// Used for the CMaterialSystem::FindMaterial call in CModelLoader::Studio_LoadModel
 	// Must be set properly otherwise the materials will not be found
-	g_model.pHdr->materialtypesindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->materialtypesindex = g_model.pData - g_model.pBase;
 
 	MaterialShaderType_t materialType = MaterialShaderType_t::SKNP;
-	if (g_model.pHdr->flags & STUDIOHDR_FLAGS_STATIC_PROP)
+	if (g_model.hdrV54()->flags & STUDIOHDR_FLAGS_STATIC_PROP)
 		materialType = MaterialShaderType_t::RGDP;
 
 	memset(g_model.pData, materialType, numTextures);
@@ -455,7 +434,7 @@ void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2:
 	ALIGN4(g_model.pData); // align data to 4 bytes
 
 	// Write static cdtexture data
-	g_model.pHdr->cdtextureindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->cdtextureindex = g_model.pData - g_model.pBase;
 
 	// i think cdtextures are mostly unused in r5 so use empty string
 	AddToStringTable(g_model.pBase, (int*)g_model.pData, "");
@@ -467,7 +446,7 @@ void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
 	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
 	printf("converting %i skins (%i skinrefs)...\n", numSkinFamilies, numSkinRef);
 
-	g_model.pHdr->skinindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->skinindex = g_model.pData - g_model.pBase;
 
 	int skinIndexDataSize = sizeof(__int16) * numSkinRef * numSkinFamilies;
 	memcpy(g_model.pData, pOldSkinData, skinIndexDataSize);
@@ -492,8 +471,8 @@ void ConvertAnims_53()
 {
 	r5::v8::mstudioseqdesc_t* seqdesc = reinterpret_cast<r5::v8::mstudioseqdesc_t*>(g_model.pData);
 
-	g_model.pHdr->localseqindex = g_model.pData - g_model.pBase;
-	g_model.pHdr->numlocalseq = 1;
+	g_model.hdrV54()->localseqindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->numlocalseq = 1;
 
 	seqdesc->baseptr = 0;
 	AddToStringTable((char*)seqdesc, &seqdesc->szlabelindex, "ref");
@@ -501,8 +480,8 @@ void ConvertAnims_53()
 
 	seqdesc->activity = -1;
 
-	seqdesc->bbmin = g_model.pHdr->mins;
-	seqdesc->bbmax = g_model.pHdr->maxs;
+	seqdesc->bbmin = g_model.hdrV54()->mins;
+	seqdesc->bbmax = g_model.hdrV54()->maxs;
 	seqdesc->groupsize[0] = 1;
 	seqdesc->groupsize[1] = 1;
 	seqdesc->paramindex[0] = -1;
@@ -518,7 +497,7 @@ void ConvertAnims_53()
 	g_model.pData += sizeof(r5::v8::mstudioseqdesc_t);
 
 	// weightlist
-	for (int i = 0; i < g_model.pHdr->numbones; ++i)
+	for (int i = 0; i < g_model.hdrV54()->numbones; ++i)
 	{
 		*reinterpret_cast<float*>(g_model.pData) = 1.0f;
 		g_model.pData += sizeof(int);
@@ -629,7 +608,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// convert attachments
 	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
-	ConvertAttachments_53((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
+	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
 
 	// convert hitboxsets and hitboxes
 	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
@@ -637,10 +616,10 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// copy bonebyname table (bone ids sorted alphabetically by name)
 	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
-	input.read(g_model.pData, g_model.pHdr->numbones);
+	input.read(g_model.pData, g_model.hdrV54()->numbones);
 
-	g_model.pHdr->bonetablebynameindex = g_model.pData - g_model.pBase;
-	g_model.pData += g_model.pHdr->numbones;
+	g_model.hdrV54()->bonetablebynameindex = g_model.pData - g_model.pBase;
+	g_model.pData += g_model.hdrV54()->numbones;
 
 	ALIGN4(g_model.pData);
 
@@ -651,7 +630,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	ConvertBodyParts_53((mstudiobodyparts_t*)input.getPtr(), oldHeader.numbodyparts);
 
 	input.seek(oldHeader.localposeparamindex, rseekdir::beg);
-	ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, false);
+	g_model.hdrV54()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, false);
 
 	input.seek(oldHeader.ikchainindex, rseekdir::beg);
 	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader.numikchains, false);
@@ -680,12 +659,12 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// SrcBoneTransforms
 	input.seek(oldHeader.srcbonetransformindex, rseekdir::beg);
-	ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader.numsrcbonetransform);
+	g_model.hdrV54()->srcbonetransformindex = ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader.numsrcbonetransform);
 
 	if (oldHeader.linearboneindex && oldHeader.numbones > 1)
 	{
 		input.seek(oldHeader.linearboneindex, rseekdir::beg);
-		ConvertLinearBoneTable((mstudiolinearbone_t*)input.getPtr(), (char*)input.getPtr() + sizeof(mstudiolinearbone_t));
+		ConvertLinearBoneTableTo54((mstudiolinearbone_t*)input.getPtr(), (char*)input.getPtr() + sizeof(mstudiolinearbone_t));
 	}
 
 	g_model.pData = WriteStringTable(g_model.pData);
@@ -741,7 +720,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// convert attachments
 	input.seek(oldHeader.localattachmentindex, rseekdir::beg);
-	ConvertAttachments_53((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
+	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader.numlocalattachments);
 
 	// convert hitboxsets and hitboxes
 	input.seek(oldHeader.hitboxsetindex, rseekdir::beg);
@@ -749,15 +728,15 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	// copy bonebyname table (bone ids sorted alphabetically by name)
 	input.seek(oldHeader.bonetablebynameindex, rseekdir::beg);
-	input.read(g_model.pData, g_model.pHdr->numbones);
+	input.read(g_model.pData, g_model.hdrV54()->numbones);
 
-	g_model.pHdr->bonetablebynameindex = g_model.pData - g_model.pBase;
-	g_model.pData += g_model.pHdr->numbones;
+	g_model.hdrV54()->bonetablebynameindex = g_model.pData - g_model.pBase;
+	g_model.pData += g_model.hdrV54()->numbones;
 
 	ALIGN4(g_model.pData);
 
 	input.seek(oldHeader.localposeparamindex, rseekdir::beg);
-	ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, true);
+	g_model.hdrV54()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader.numlocalposeparameters, true);
 
 	input.seek(oldHeader.ikchainindex, rseekdir::beg);
 	ConvertIkChains_53((r2::mstudioikchain_t*)input.getPtr(), oldHeader.numikchains, true);

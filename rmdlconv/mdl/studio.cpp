@@ -26,7 +26,7 @@ uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4)
 	else
 		droppedComponent = 2;
 
-	// changed from 256 -> 255.5 because it made results neat identical to vanilla vg and values read closer to vvd when using for subtraction
+	// changed from 256 -> 255.5 because it made results near identical to vanilla vg and values read closer to vvd when using for subtraction
 	switch (droppedComponent)
 	{
 	case 0:
