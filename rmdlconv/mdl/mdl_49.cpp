@@ -652,8 +652,8 @@ void ConvertMDLData_49(char* buf, const std::string& filePath)
 	ALIGN4(g_model.pData);
 
 	// SrcBoneTransforms
-	mstudiosrcbonetransform_t* pSrcBoneTransforms = oldHeader->pStudioHdr2()->pSrcBoneTransforms();
-	g_model.hdrV54()->srcbonetransformindex = ConvertSrcBoneTransforms(pSrcBoneTransforms, oldHeader->pStudioHdr2()->numsrcbonetransform);
+	input.seek(oldHeader->pStudioHdr2()->srcbonetransformindex, rseekdir::beg);
+	g_model.hdrV54()->srcbonetransformindex = ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader->pStudioHdr2()->numsrcbonetransform);
 
 	if (oldHeader->pStudioHdr2()->linearboneindex && oldHeader->numbones > 1)
 	{

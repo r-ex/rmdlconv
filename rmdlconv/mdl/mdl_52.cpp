@@ -8,6 +8,8 @@
 // Purpose: converts the mdl v52 (Titanfall 1) studiohdr_t struct to mdl v53 compatible (Titanfall 2)
 void ConvertStudioHdrFrom52To53(r2::studiohdr_t* out, r1::studiohdr_t* hdr)
 {
+	printf("converting header...\n");
+
 	out->id = 'TSDI';
 	out->version = 53;
 
@@ -111,9 +113,12 @@ void ConvertBonesFrom52To53(r1::mstudiobone_t* pOldBones, int numBones)
 		newBone->contents = oldBone->contents;
 		newBone->surfacepropLookup = oldBone->surfacepropLookup;
 
+		newBone->unkindex = -1;
+
 		if (oldBone->proctype != 0)
 			proceduralBones.push_back(newBone);
 	}
+
 	g_model.hdrV53()->boneindex = g_model.pData - g_model.pBase;
 	g_model.pData += numBones * sizeof(r2::mstudiobone_t);
 
@@ -336,6 +341,107 @@ void ConvertIkChainsFromMDLTo53(mstudioikchain_t* pOldIkChains, int numIkChains)
 	ALIGN4(g_model.pData);
 }
 
+void ConvertIncludeModels(mstudiomodelgroup_t* pOldModelGroups, int numModelGroups)
+{
+	g_model.hdrV53()->includemodelindex = g_model.pData - g_model.pBase;
+
+	printf("converting %i includemodels...\n", numModelGroups);
+
+	for (int i = 0; i < numModelGroups; i++)
+	{
+		mstudiomodelgroup_t* oldGroup = &pOldModelGroups[i];
+
+		mstudiomodelgroup_t* newGroup = reinterpret_cast<mstudiomodelgroup_t*>(g_model.pData);
+
+		AddToStringTable((char*)newGroup, &newGroup->szlabelindex, STRING_FROM_IDX(oldGroup, oldGroup->szlabelindex));
+		AddToStringTable((char*)newGroup, &newGroup->sznameindex, STRING_FROM_IDX(oldGroup, oldGroup->sznameindex));
+
+		g_model.pData += sizeof(mstudiomodelgroup_t);
+	}
+}
+
+void ConvertTexturesFrom52To53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r1::mstudiotexture_t* pOldTextures, int numTextures, r1::studiohdr_t* pOldHdr)
+{
+	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
+	printf("converting %i textures...\n", numTextures);
+
+	g_model.hdrV53()->textureindex = g_model.pData - g_model.pBase;
+	for (int i = 0; i < numTextures; ++i)
+	{
+		r1::mstudiotexture_t* oldTexture = &pOldTextures[i];
+
+		r2::mstudiotexture_t* newTexture = reinterpret_cast<r2::mstudiotexture_t*>(g_model.pData);
+
+		const char* textureName = STRING_FROM_IDX(oldTexture, oldTexture->sznameindex);
+		AddToStringTable((char*)newTexture, &newTexture->sznameindex, textureName);
+
+		g_model.pData += sizeof(r2::mstudiotexture_t);
+	}
+
+	ALIGN4(g_model.pData);
+
+	// Write cdtexture data
+	g_model.hdrV53()->cdtextureindex = g_model.pData - g_model.pBase;
+
+	printf("converting %i cdtextures...\n", numCDTextures);
+
+	for (int i = 0; i < numCDTextures; ++i)
+	{
+		mstudiotexturedir_t* oldDir = &pCDTextures[i];
+
+		mstudiotexturedir_t* newDir = reinterpret_cast<mstudiotexturedir_t*>(g_model.pData);
+
+		const char* dirName = STRING_FROM_IDX(pOldHdr, oldDir->sznameindex);
+		//printf(dirName);
+		//printf("\n");
+		AddToStringTable(g_model.pBase, &newDir->sznameindex, dirName);
+
+		//AddToStringTable(g_model.pBase, &newDir->sznameindex, "");
+
+		g_model.pData += sizeof(mstudiotexturedir_t);
+	}
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertSkinsFromMDL(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
+{
+	// TODO[rexx]: maybe add old cdtexture parsing here if available, or give the user the option to manually set the material paths
+	printf("converting %i skins (%i skinrefs)...\n", numSkinFamilies, numSkinRef);
+
+	g_model.hdrV53()->skinindex = g_model.pData - g_model.pBase;
+
+	int skinIndexDataSize = sizeof(__int16) * numSkinRef * numSkinFamilies;
+	memcpy(g_model.pData, pOldSkinData, skinIndexDataSize);
+	g_model.pData += skinIndexDataSize;
+
+	ALIGN4(g_model.pData);
+}
+
+void ConvertPerTriAABBFrom52To53(r1::mstudioaabbheader_t* pOldPerTri, char* pOldAABBTree, int numNodes, int numLeaves, int numVerts)
+{
+	g_model.hdrV53()->m_nPerTriAABBIndex = g_model.pData - g_model.pBase;
+
+	printf("converting per triangle aabb with %i nodes, %i leaves, and %i verts...\n", numNodes, numLeaves, numVerts);
+
+	r1::mstudioaabbheader_t* newPerTri = reinterpret_cast<r1::mstudioaabbheader_t*>(g_model.pData);
+	g_model.pData += sizeof(r1::mstudioaabbheader_t);
+
+	newPerTri->version = pOldPerTri->version;
+	newPerTri->bbmin = pOldPerTri->bbmin;
+	newPerTri->bbmax = pOldPerTri->bbmax;
+
+	if (newPerTri->version != 2)
+		return;
+
+	int aabbTreeSize = (sizeof(r1::mstudioaabbnode_t) * numNodes) + (sizeof(r1::mstudioaabbleaf_t) * numLeaves) + (sizeof(r1::mstudioaabbvert_t) * numVerts);
+
+	memcpy(g_model.pData, pOldAABBTree, aabbTreeSize);
+	g_model.pData += aabbTreeSize;
+
+	ALIGN4(g_model.pData);
+}
+
 #define FILEBUFSIZE (32 * 1024 * 1024)
 
 void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
@@ -343,71 +449,6 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 	rmem input(buf);
 
 	r1::studiohdr_t* oldHeader = input.get<r1::studiohdr_t>();
-
-	//-| begin phy reading  |-----
-	/*std::unique_ptr<char[]> phyBuf;
-	{
-		std::string phyPath = ChangeExtension(filePath, "dx11.vtx");
-		if (!FILE_EXISTS(phyPath))
-			return;
-
-		size_t phySize = GetFileSize(phyPath);
-		phyBuf = std::unique_ptr<char[]>(new char[phySize]);
-
-		std::ifstream vtxIn(phyPath, std::ios::in | std::ios::binary);
-		vtxIn.read(phyBuf.get(), phySize);
-		vtxIn.close();
-	}*/
-	//-| end phy reading   |-----
-
-	//-| begin vtx reading  |-----
-	std::unique_ptr<char[]> vtxBuf;
-	{
-		std::string vtxPath = ChangeExtension(filePath, "dx11.vtx");
-		if (!FILE_EXISTS(vtxPath))
-			Error("couldn't find .vtx file '%s'\n", vtxPath.c_str());
-
-		size_t vtxSize = GetFileSize(vtxPath);
-		vtxBuf = std::unique_ptr<char[]>(new char[vtxSize]);
-
-		std::ifstream vtxIn(vtxPath, std::ios::in | std::ios::binary);
-		vtxIn.read(vtxBuf.get(), vtxSize);
-		vtxIn.close();
-	}
-	//-| end vtx reading   |-----
-
-	//-| begin vvd reading |-----
-	std::unique_ptr<char[]> vvdBuf;
-	{
-		std::string vvdPath = ChangeExtension(filePath, "vvd");
-		if (!FILE_EXISTS(vvdPath))
-			Error("couldn't find .vvd file '%s'\n", vvdPath.c_str());
-
-		size_t vvdSize = GetFileSize(vvdPath);
-		vvdBuf = std::unique_ptr<char[]>(new char[vvdSize]);
-
-		std::ifstream vvdIn(vvdPath, std::ios::in | std::ios::binary);
-		vvdIn.read(vvdBuf.get(), vvdSize);
-		vvdIn.close();
-	}
-	//-| end vvd reading
-
-	//-| begin vvc reading |-----
-	/*std::unique_ptr<char[]> vvcBuf;
-	{
-		std::string vvcPath = ChangeExtension(filePath, "vvc");
-		if (!FILE_EXISTS(vvcPath))
-			return;
-
-		size_t vvcSize = GetFileSize(vvcPath);
-
-		vvdBuf = std::unique_ptr<char[]>(new char[vvcSize]);
-
-		std::ifstream vvdIn(vvcPath, std::ios::in | std::ios::binary);
-		vvdIn.read(vvdBuf.get(), vvcSize);
-		vvdIn.close();
-	}*/
-	//-| end vvc reading
 
 	std::string outPath = ChangeExtension(filePath, "mdl_new");
 	std::ofstream out(outPath, std::ios::out | std::ios::binary);
@@ -422,15 +463,100 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 	g_model.pHdr = pHdr;
 	g_model.pData += sizeof(r2::studiohdr_t);
 
+	// do other file buffers after header so we can save size
+
+	//-| begin phy reading  |-----
+	std::unique_ptr<char[]> phyBuf;
+	if (FILE_EXISTS(ChangeExtension(filePath, "phy")))
+	{
+		printf("model has 'phy' file...\n");
+
+		std::string phyPath = ChangeExtension(filePath, "phy");
+
+		size_t phySize = GetFileSize(phyPath);
+		phyBuf = std::unique_ptr<char[]>(new char[phySize]);
+
+		std::ifstream phyIn(phyPath, std::ios::in | std::ios::binary);
+		phyIn.read(phyBuf.get(), phySize);
+		phyIn.close();
+
+		g_model.hdrV53()->vphysize = phySize;
+	}
+	//-| end phy reading   |-----
+
+	//-| begin vtx reading  |-----
+	std::unique_ptr<char[]> vtxBuf;
+	if (FILE_EXISTS(ChangeExtension(filePath, "dx11.vtx")))
+	{
+		printf("model has 'vtx' file...\n");
+
+		std::string vtxPath = ChangeExtension(filePath, "dx11.vtx");
+
+		size_t vtxSize = GetFileSize(vtxPath);
+		vtxBuf = std::unique_ptr<char[]>(new char[vtxSize]);
+
+		std::ifstream vtxIn(vtxPath, std::ios::in | std::ios::binary);
+		vtxIn.read(vtxBuf.get(), vtxSize);
+		vtxIn.close();
+
+		g_model.hdrV53()->vtxsize = vtxSize;
+	}
+	//-| end vtx reading   |-----
+
+	//-| begin vvd reading |-----
+	std::unique_ptr<char[]> vvdBuf;
+	if (FILE_EXISTS(ChangeExtension(filePath, "vvd")))
+	{
+		printf("model has 'vvd' file...\n");
+
+		std::string vvdPath = ChangeExtension(filePath, "vvd");
+
+		size_t vvdSize = GetFileSize(vvdPath);
+		vvdBuf = std::unique_ptr<char[]>(new char[vvdSize]);
+
+		std::ifstream vvdIn(vvdPath, std::ios::in | std::ios::binary);
+		vvdIn.read(vvdBuf.get(), vvdSize);
+		vvdIn.close();
+
+		g_model.hdrV53()->vvdsize = vvdSize;
+	}
+	//-| end vvd reading
+
+	//-| begin vvc reading |-----
+	std::unique_ptr<char[]> vvcBuf;
+	if (FILE_EXISTS(ChangeExtension(filePath, "vvc")))
+	{
+		printf("model has 'vvc' file...\n");
+
+		std::string vvcPath = ChangeExtension(filePath, "vvc");
+
+		size_t vvcSize = GetFileSize(vvcPath);
+		vvcBuf = std::unique_ptr<char[]>(new char[vvcSize]);
+
+		std::ifstream vvcIn(vvcPath, std::ios::in | std::ios::binary);
+		vvcIn.read(vvcBuf.get(), vvcSize);
+		vvcIn.close();
+
+		g_model.hdrV53()->vvcsize = vvcSize;
+	}
+	//-| end vvc reading
+
+	printf("1");
+
+	// eventually we will need to load ani files
+
 	// init string table so we can use 
 	BeginStringTable();
 
 	std::string modelName = oldHeader->pszName();
 
-	memcpy_s(&pHdr->name, 64, modelName.c_str(), modelName.length());
+	printf(modelName.c_str());
+
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, oldHeader->pszUnkString()); // "Titan" or empty
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
+
+	printf("2");
 
 	// source file for lulz
 	input.seek(oldHeader->sourceFilenameOffset, rseekdir::beg);
@@ -441,9 +567,13 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 	g_model.pData += oldHeader->boneindex - oldHeader->sourceFilenameOffset;
 	ALIGN4(g_model.pData);
 
+	printf("3");
+
 	// convert bones and jigglebones
 	input.seek(oldHeader->boneindex, rseekdir::beg);
 	ConvertBonesFrom52To53((r1::mstudiobone_t*)input.getPtr(), oldHeader->numbones);
+
+	pHdr->bonecontrollerindex = g_model.pData - g_model.pBase;
 
 	// convert attachments
 	input.seek(oldHeader->localattachmentindex, rseekdir::beg);
@@ -468,23 +598,35 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 	input.seek(oldHeader->bodypartindex, rseekdir::beg);
 	ConvertBodyPartsFrom52To53((mstudiobodyparts_t*)input.getPtr(), oldHeader->numbodyparts);
 
-	input.seek(oldHeader->localposeparamindex, rseekdir::beg);
-	g_model.hdrV53()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader->numlocalposeparameters, false);
+	// set these even though they are unused
+	pHdr->deprecated_flexdescindex = g_model.pData - g_model.pBase;
+	pHdr->deprecated_flexcontrollerindex = g_model.pData - g_model.pBase;
+	pHdr->deprecated_flexruleindex = g_model.pData - g_model.pBase;
+	pHdr->deprecated_flexcontrolleruiindex = g_model.pData - g_model.pBase;
 
 	input.seek(oldHeader->ikchainindex, rseekdir::beg);
 	ConvertIkChainsFromMDLTo53((mstudioikchain_t*)input.getPtr(), oldHeader->numikchains);
 
-	//// get cdtextures pointer for converting textures
-	//input.seek(oldHeader->cdtextureindex, rseekdir::beg);
-	//void* pOldCDTextures = input.getPtr();
+	input.seek(oldHeader->localposeparamindex, rseekdir::beg);
+	g_model.hdrV53()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader->numlocalposeparameters, false);
 
-	//// convert textures
-	//input.seek(oldHeader->textureindex, rseekdir::beg);
-	//ConvertTextures_49((mstudiotexturedir_t*)pOldCDTextures, oldHeader->numcdtextures, (mstudiotexture_t*)input.getPtr(), oldHeader->numtextures);
+	// should be after meshes
+	pHdr->ruimeshindex = g_model.pData - g_model.pBase;
 
-	//// convert skin data
-	//input.seek(oldHeader->skinindex, rseekdir::beg);
-	//ConvertSkins_49((char*)input.getPtr(), oldHeader->numskinref, oldHeader->numskinfamilies);
+	input.seek(oldHeader->includemodelindex, rseekdir::beg);
+	ConvertIncludeModels((mstudiomodelgroup_t*)input.getPtr(), oldHeader->numincludemodels);
+
+	// get cdtextures pointer for converting textures
+	input.seek(oldHeader->cdtextureindex, rseekdir::beg);
+	void* pOldCDTextures = input.getPtr();
+
+	// convert textures
+	input.seek(oldHeader->textureindex, rseekdir::beg);
+	ConvertTexturesFrom52To53((mstudiotexturedir_t*)pOldCDTextures, oldHeader->numcdtextures, (r1::mstudiotexture_t*)input.getPtr(), oldHeader->numtextures, oldHeader);
+
+	// convert skin data
+	input.seek(oldHeader->skinindex, rseekdir::beg);
+	ConvertSkinsFromMDL((char*)input.getPtr(), oldHeader->numskinref, oldHeader->numskinfamilies);
 
 	// write base keyvalues
 	input.seek(oldHeader->keyvalueindex, rseekdir::beg);
@@ -497,8 +639,8 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 	ALIGN4(g_model.pData);
 
 	// SrcBoneTransforms
-	mstudiosrcbonetransform_t* pSrcBoneTransforms = oldHeader->pStudioHdr2()->pSrcBoneTransforms();
-	g_model.hdrV53()->srcbonetransformindex = ConvertSrcBoneTransforms(pSrcBoneTransforms, oldHeader->pStudioHdr2()->numsrcbonetransform);
+	input.seek(oldHeader->pStudioHdr2()->srcbonetransformindex, rseekdir::beg);
+	g_model.hdrV53()->srcbonetransformindex = ConvertSrcBoneTransforms((mstudiosrcbonetransform_t*)input.getPtr(), oldHeader->pStudioHdr2()->numsrcbonetransform);
 
 	if (oldHeader->pStudioHdr2()->linearboneindex && oldHeader->numbones > 1)
 	{
@@ -506,8 +648,54 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 		ConvertLinearBoneTableTo53(pLinearBones, (char*)pLinearBones + sizeof(mstudiolinearbone_t));
 	}
 
+	r1::mstudioaabbheader_t* pPerTriAABB = oldHeader->pStudioHdr2()->pPerTriAABB();
+	ConvertPerTriAABBFrom52To53(pPerTriAABB, (char*)pPerTriAABB + sizeof(r1::mstudioaabbheader_t), oldHeader->pStudioHdr2()->m_nPerTriAABBNodeCount, oldHeader->pStudioHdr2()->m_nPerTriAABBLeafCount, oldHeader->pStudioHdr2()->m_nPerTriAABBVertCount); // looooong
+
 	g_model.pData = WriteStringTable(g_model.pData);
 	ALIGN4(g_model.pData);
+
+	if (phyBuf)
+	{
+		printf("inserting phy...\n");
+
+		g_model.hdrV53()->vphyindex = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, phyBuf.get(), g_model.hdrV53()->vphysize);
+
+		g_model.pData += g_model.hdrV53()->vphysize;
+	}
+
+	g_model.hdrV53()->unkmemberindex1 = g_model.pData - g_model.pBase;
+	g_model.hdrV53()->unkindex3 = g_model.pData - g_model.pBase;
+
+	if (vtxBuf)
+	{
+		printf("inserting vtx...\n");
+
+		g_model.hdrV53()->vtxindex = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, vtxBuf.get(), g_model.hdrV53()->vtxsize);
+
+		g_model.pData += g_model.hdrV53()->vtxsize;
+	}
+
+	if (vvdBuf)
+	{
+		printf("inserting vvd...\n");
+
+		g_model.hdrV53()->vvdindex = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, vvdBuf.get(), g_model.hdrV53()->vvdsize);
+
+		g_model.pData += g_model.hdrV53()->vvdsize;
+	}
+
+	if (vvcBuf)
+	{
+		printf("inserting vvc...\n");
+
+		g_model.hdrV53()->vvcindex = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, vvcBuf.get(), g_model.hdrV53()->vvcsize);
+
+		g_model.pData += g_model.hdrV53()->vvcsize;
+	}
 
 	pHdr->length = g_model.pData - g_model.pBase;
 

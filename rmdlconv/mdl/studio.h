@@ -467,6 +467,12 @@ struct mstudioikchain_t
 	int linkindex;
 };
 
+struct mstudiomodelgroup_t
+{
+	int					szlabelindex;	// textual name
+	int					sznameindex;	// file name
+};
+
 struct mstudiotexture_t
 {
 	int						sznameindex;
@@ -783,11 +789,53 @@ struct studiohdr_t
 
 namespace r1
 {
+	// struct names are assumptions
+	struct mstudioaabbheader_t
+	{
+		int version; // unsure if this is an actual version or type
+					 // set to '2' for static prop.
+
+		// aabb sizes, same as hulls
+		Vector3 bbmin;
+		Vector3 bbmax;
+
+		int unused[8]; // hopefully, checks out with other mdl structs 
+	};
+
+	struct mstudioaabbnode_t
+	{
+		short unk[3];
+		short unk1[3];
+
+		// sometimes negative
+		int unk2[2];
+	};
+
+	struct aabbtype
+	{
+		short unk[3];
+		short unk1;
+	};
+
+	struct mstudioaabbleaf_t
+	{
+		short unk[6];
+
+		int unk1;
+
+		aabbtype unk2[12];
+	};
+
+	struct mstudioaabbvert_t
+	{
+		char vertex[6]; // format is unknown
+	};
+
 	struct studiohdr2_t
 	{
 		int numsrcbonetransform;
 		int srcbonetransformindex;
-		inline mstudiosrcbonetransform_t* pSrcBoneTransforms() const { return (mstudiosrcbonetransform_t*)((byte*)this) + srcbonetransformindex; }
+		//inline mstudiosrcbonetransform_t* pSrcBoneTransforms() const { return (mstudiosrcbonetransform_t*)(((byte*)this) + srcbonetransformindex); }
 
 		int	illumpositionattachmentindex;
 
@@ -808,6 +856,7 @@ namespace r1
 		int m_nPerTriAABBNodeCount;
 		int m_nPerTriAABBLeafCount;
 		int m_nPerTriAABBVertCount;
+		inline r1::mstudioaabbheader_t* pPerTriAABB() const { return (r1::mstudioaabbheader_t*)(((byte*)this) + m_nPerTriAABBIndex); }
 
 		// always "" or "Titan"
 		int unkstringindex;
@@ -1772,8 +1821,7 @@ static int ConvertSrcBoneTransforms(mstudiosrcbonetransform_t* pOldBoneTransform
 
 		mstudiosrcbonetransform_t* newTransform = reinterpret_cast<mstudiosrcbonetransform_t*>(g_model.pData);
 
-		const char* boneName = STRING_FROM_IDX(oldTransform, oldTransform->sznameindex);
-		AddToStringTable((char*)newTransform, &newTransform->sznameindex, boneName);
+		AddToStringTable((char*)newTransform, &newTransform->sznameindex, STRING_FROM_IDX(oldTransform, oldTransform->sznameindex));
 
 		newTransform->pretransform = oldTransform->pretransform;
 		newTransform->posttransform = oldTransform->posttransform;
