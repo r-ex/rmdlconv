@@ -1,4 +1,5 @@
 #pragma once
+#pragma message("Precompiling headers.\n")
 
 #include <stdio.h>
 #include <string>
