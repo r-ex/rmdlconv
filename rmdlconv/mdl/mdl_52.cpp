@@ -446,6 +446,8 @@ void ConvertPerTriAABBFrom52To53(r1::mstudioaabbheader_t* pOldPerTri, char* pOld
 
 void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 {
+	TIME_SCOPE(__FUNCTION__);
+
 	rmem input(buf);
 
 	r1::studiohdr_t* oldHeader = input.get<r1::studiohdr_t>();

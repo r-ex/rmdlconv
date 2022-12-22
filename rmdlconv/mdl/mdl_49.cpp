@@ -527,6 +527,8 @@ void ConvertAnims_49()
 //
 void ConvertMDLData_49(char* buf, const std::string& filePath)
 {
+	TIME_SCOPE(__FUNCTION__);
+
 	rmem input(buf);
 
 	studiohdr_t* oldHeader = input.get<studiohdr_t>();

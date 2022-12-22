@@ -4,6 +4,7 @@
 #include <string>
 #include <filesystem>
 #include <iostream>
+#include <chrono>
 
 #define FILE_EXISTS(path) std::filesystem::exists(path)
 
@@ -92,3 +93,29 @@ static std::uint64_t __fastcall HashString(const char* pData)
 	}
 	return 0x633D5F1 * v2 + ((0xFB8C4D96501i64 * (std::uint64_t)(v4 & v10)) >> 24) - 0xAE502812AA7333i64 * (std::uint32_t)(v3 + v9 / 8);
 }
+
+using namespace std::chrono;
+
+class CScopeTimer
+{
+public:
+	CScopeTimer(const std::string& name)
+	{
+		m_name = name;
+		m_startTime = system_clock::now().time_since_epoch();
+	}
+
+	~CScopeTimer()
+	{
+		system_clock::duration now = system_clock::now().time_since_epoch();
+		printf("%s: finished in %.3fms\n", m_name.c_str(), duration_cast<microseconds>(now - m_startTime).count() / 1000.f);
+	}
+
+private:
+	std::string m_name;
+	system_clock::duration m_startTime;
+};
+
+#define XTIME_SCOPE2(x, y) CScopeTimer __timer_##y(x)
+#define XTIME_SCOPE(x, y) XTIME_SCOPE2(x, y)
+#define TIME_SCOPE(x) XTIME_SCOPE(x, __COUNTER__)
