@@ -75,7 +75,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 	FileHeader_t* vtx = reinterpret_cast<FileHeader_t*>(vtxBuf);
 	vertexFileHeader_t* vvd = reinterpret_cast<vertexFileHeader_t*>(vvdBuf);
 	vertexColorFileHeader_t* vvc = reinterpret_cast<vertexColorFileHeader_t*>(vvcBuf);
-	vertexWeightFileHeader_t* vvw = reinterpret_cast<vertexWeightFileHeader_t*>(vvwBuf);
+	vertexBoneWeightsExtraFileHeader_t* vvw = reinterpret_cast<vertexBoneWeightsExtraFileHeader_t*>(vvwBuf);
 
 	if ((!vvcBuf && (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)) || (!vvcBuf && (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)))
 		Error("model requires 'vvc' file but could not be found \n");

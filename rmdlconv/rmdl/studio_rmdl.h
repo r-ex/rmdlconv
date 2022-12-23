@@ -708,7 +708,7 @@ struct mstudioexternalweight_t
 };
 
 // file extension unknown
-struct vertexWeightFileHeader_t
+struct vertexBoneWeightsExtraFileHeader_t
 {
 	int checksum; // same as studiohdr_t, ensures sync
 	int version;
