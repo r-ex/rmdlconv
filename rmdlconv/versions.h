@@ -1,3 +1,6 @@
+// Copyright (c) 2022, rexx
+// See LICENSE.txt for licensing information (GPLv3)
+
 #pragma once
 
 enum MdlVersion

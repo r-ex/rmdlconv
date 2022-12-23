@@ -1,3 +1,6 @@
+// Copyright (c) 2022, rexx
+// See LICENSE.txt for licensing information (GPLv3)
+
 #include "stdafx.h"
 #include "CommandLine.h"
 #include "versions.h"
@@ -20,8 +23,11 @@ const char* pszVersionHelpString = {
 	"> "
 };
 
+
 int main(int argc, char** argv)
 {
+	printf("rmdlconv - Copyright (c) 2022, rexx\n");
+
 	CommandLine cmdline(argc, argv);
 
     if (argc < 2)

@@ -1,7 +1,6 @@
 #pragma once
 #include <fstream>
 
-
 //
 // adapted from https://karlboghossian.com/2012/12/29/how-to-mimic-csharp-binaryreader-binarywriter-in-cplusplus/
 //

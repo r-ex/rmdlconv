@@ -1,3 +1,6 @@
+// Copyright (c) 2022, rexx
+// See LICENSE.txt for licensing information (GPL v3)
+
 #pragma once
 
 // This flag is set if no hitbox information was specified
