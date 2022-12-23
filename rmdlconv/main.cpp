@@ -1,5 +1,5 @@
 // Copyright (c) 2022, rexx
-// See LICENSE.txt for licensing information (GPLv3)
+// See LICENSE.txt for licensing information (GPL v3)
 
 #include "stdafx.h"
 #include "CommandLine.h"
