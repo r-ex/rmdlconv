@@ -54,6 +54,9 @@
     <ClCompile Include="mdl\mdl_52.cpp">
       <Filter>Source Files\mdl</Filter>
     </ClCompile>
+    <ClCompile Include="mdl\mdl_48.cpp">
+      <Filter>Source Files\mdl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BinaryIO.h">

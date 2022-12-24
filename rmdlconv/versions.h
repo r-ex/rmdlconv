@@ -5,11 +5,14 @@
 
 enum MdlVersion
 {
+	GARRYSMOD   = 48,
 	PORTAL2     = 49,
 	TITANFALL   = 52,
 	TITANFALL2  = 53,
 	APEXLEGENDS = 54
 };
+
+void ConvertMDLData_48(char* inputBuf, const std::string& filePath);
 
 void ConvertMDLData_49(char* inputBuf, const std::string& filePath);
 
