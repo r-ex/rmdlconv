@@ -146,6 +146,11 @@ int main(int argc, char** argv)
 
 		break;
 	}
+	default:
+	{
+		Error("MDL version %i is currently unsupported\n", mdlVersion);
+		break;
+	}
 	}
 
 	if(!cmdline.HasParam("-nopause"))
