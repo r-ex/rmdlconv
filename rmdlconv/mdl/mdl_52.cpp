@@ -166,6 +166,11 @@ void ConvertBonesFrom52To53(r1::mstudiobone_t* pOldBones, int numBones)
 		jBone->baseMaxForward = oldJBone->baseMaxForward;
 		jBone->baseForwardFriction = oldJBone->baseForwardFriction;
 
+		jBone->minPitch = oldJBone->minPitch;
+		jBone->maxPitch = oldJBone->maxPitch;
+		jBone->pitchFriction = oldJBone->pitchFriction;
+		jBone->pitchBounce = oldJBone->pitchBounce;
+
 		g_model.pData += sizeof(mstudiojigglebone_t);
 	}
 

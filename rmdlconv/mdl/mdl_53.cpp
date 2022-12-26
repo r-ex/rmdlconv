@@ -215,6 +215,11 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 		jBone->baseMaxForward = oldJBone->baseMaxForward;
 		jBone->baseForwardFriction = oldJBone->baseForwardFriction;
 
+		jBone->minPitch = oldJBone->minPitch;
+		jBone->maxPitch = oldJBone->maxPitch;
+		jBone->pitchFriction = oldJBone->pitchFriction;
+		jBone->pitchBounce = oldJBone->pitchBounce;
+
 		g_model.pData += sizeof(r5::v8::mstudiojigglebone_t);
 	}
 
