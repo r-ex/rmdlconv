@@ -154,6 +154,8 @@ struct StripGroupHeader_t
 	int numIndices;
 	int indexOffset;
 
+	uint16_t* indice(int i) { return reinterpret_cast<uint16_t*>((char*)this + indexOffset) + i; }
+
 	uint16_t* indices()
 	{
 		return reinterpret_cast<uint16_t*>((char*)this + indexOffset);
