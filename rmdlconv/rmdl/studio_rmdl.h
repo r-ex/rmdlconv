@@ -399,6 +399,48 @@ namespace r5 // apex legends
 			int unkcount;
 		};
 
+		struct mstudioevent_t
+		{
+			float cycle;
+			int	event;
+			int type; // this will be 0 if old style I'd imagine
+			char options[256];
+
+			int szeventindex;
+		};
+
+		struct mstudioautolayer_t
+		{
+			// this needs to have a guid descriptor in rpak
+			__int64 guidSequence; // hashed aseq guid asset
+
+			short iSequence; // only used within an rmdl I would imagine
+			short iPose;
+
+			int flags;
+			float start;	// beginning of influence
+			float peak;	// start of full influence
+			float tail;	// end of full influence
+			float end;	// end of all influence
+		};
+
+		// wraith_menu_select.rseq
+		// caustic_gladcard_animated_hunting.rseq
+		// caustic_gladcard_animated_coffee.rseq
+		struct unkseqdata_t
+		{
+			// generally 0-1
+			float unkfloat;
+
+			int unk;
+
+			// quaternion mayhaps
+			float unkfloat1;
+			float unkfloat2;
+			float unkfloat3;
+			float unkfloat4;
+		};
+
 		struct mstudioanimdesc_t
 		{
 			int baseptr;
@@ -696,6 +738,37 @@ namespace r5 // apex legends
 			int unkindex4; // chunk before unkindex2 sometimes
 
 			int unk4_v54[3];
+		};
+
+		struct mstudioanimdesc_t
+		{
+			int baseptr;
+
+			int sznameindex;
+
+			float fps; // frames per second	
+			int flags; // looping/non-looping flags
+
+			int numframes;
+
+			// piecewise movement
+			int nummovements;
+			int movementindex;
+
+			int framemovementindex; // new in v52
+
+			int animindex; // non-zero when anim data isn't in sections
+
+			int numikrules;
+			int ikruleindex; // non-zero when IK data is stored in the mdl
+
+			int sectionindex;
+			int unk; // what, obviously section related as it's wedged between sectionindex and sectiom frames
+			int sectionframes; // number of frames used in each fast lookup section, zero if not used
+
+			int unk1[4]; // is this even real?
+
+			// it seems like there's another int here but I'm unsure
 		};
 	}
 }

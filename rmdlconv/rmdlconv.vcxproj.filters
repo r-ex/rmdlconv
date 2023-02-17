@@ -25,6 +25,9 @@
     <Filter Include="Source Files\mdl">
       <UniqueIdentifier>{23f7f4b5-1dd3-4f67-8ca2-d35d5e763343}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\rseq">
+      <UniqueIdentifier>{6531fa27-5720-467c-a36d-daf2ca50eac2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -56,6 +59,9 @@
     </ClCompile>
     <ClCompile Include="mdl\mdl_48.cpp">
       <Filter>Source Files\mdl</Filter>
+    </ClCompile>
+    <ClCompile Include="rseq\rseq_71.cpp">
+      <Filter>Source Files\rseq</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

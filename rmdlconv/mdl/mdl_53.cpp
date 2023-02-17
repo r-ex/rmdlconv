@@ -103,7 +103,7 @@ void GenerateRigHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t* hdr)
 	out->id = 'TSDI';
 	out->version = 54;
 
-	memcpy_s(out->name, 64, hdr->name, 64);\
+	memcpy_s(out->name, 64, hdr->name, 64);
 
 	out->numbones = hdr->numbones;
 	out->numbonecontrollers = hdr->numbonecontrollers;

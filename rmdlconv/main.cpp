@@ -23,6 +23,15 @@ const char* pszVersionHelpString = {
 	"> "
 };
 
+const char* pszRSeqVersionHelpString = {
+	"Please input the version of your sequence : \n"
+	"7:    s0,1,3,4,5,6\n"
+	"7.1:  s7,8\n"
+	"10:   s9,10,11,12,13,14\n"
+	"11:   s15\n"
+	"> "
+};
+
 
 int main(int argc, char** argv)
 {
@@ -41,133 +50,171 @@ int main(int argc, char** argv)
 	BinaryIO mdlIn;
 	mdlIn.open(mdlPath, BinaryIOMode::Read);
 
-	if (mdlIn.read<int>() != 'TSDI')
-		Error("invalid input file. must be a valid .(r)mdl file with magic 'IDST'\n");
-
-	int mdlVersion = mdlIn.read<int>();
-
-	switch (mdlVersion)
+	if (mdlIn.read<int>() == 'TSDI')
 	{
-	case MdlVersion::GARRYSMOD:
-	{
-		uintmax_t mdlFileSize = GetFileSize(mdlPath);
+		int mdlVersion = mdlIn.read<int>();
 
-		mdlIn.seek(0, std::ios::beg);
+		switch (mdlVersion)
+		{
+		case MdlVersion::GARRYSMOD:
+		{
+			uintmax_t mdlFileSize = GetFileSize(mdlPath);
 
-		char* mdlBuf = new char[mdlFileSize];
+			mdlIn.seek(0, std::ios::beg);
 
-		mdlIn.getReader()->read(mdlBuf, mdlFileSize);
+			char* mdlBuf = new char[mdlFileSize];
 
-		ConvertMDLData_48(mdlBuf, mdlPath);
+			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
 
-		delete[] mdlBuf;
+			ConvertMDLData_48(mdlBuf, mdlPath);
 
-		break;
+			delete[] mdlBuf;
+
+			break;
+		}
+		case MdlVersion::PORTAL2:
+		{
+			uintmax_t mdlFileSize = GetFileSize(mdlPath);
+
+			mdlIn.seek(0, std::ios::beg);
+
+			char* mdlBuf = new char[mdlFileSize];
+
+			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
+
+			ConvertMDLData_49(mdlBuf, mdlPath);
+
+			delete[] mdlBuf;
+
+			break;
+		}
+		case MdlVersion::TITANFALL:
+		{
+			uintmax_t mdlFileSize = GetFileSize(mdlPath);
+
+			mdlIn.seek(0, std::ios::beg);
+
+			char* mdlBuf = new char[mdlFileSize];
+
+			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
+
+			ConvertMDLDataFrom52To53(mdlBuf, mdlPath);
+
+			delete[] mdlBuf;
+
+			break;
+		}
+		case MdlVersion::TITANFALL2:
+		{
+			uintmax_t mdlFileSize = GetFileSize(mdlPath);
+
+			mdlIn.seek(0, std::ios::beg);
+
+			char* mdlBuf = new char[mdlFileSize];
+
+			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
+
+			ConvertMDLData_53(mdlBuf, mdlPath);
+
+			delete[] mdlBuf;
+
+			break;
+		}
+		case MdlVersion::APEXLEGENDS:
+		{
+			// rmdl subversion
+			std::string version = "12.1";
+
+			if (cmdline.HasParam("-version"))
+			{
+				version = cmdline.GetParamValue("-version", "12.1");
+			}
+			else
+			{
+				std::cout << pszVersionHelpString;
+				std::cin >> version;
+			}
+
+			printf("Input file is RMDL v%s. attempting conversion...\n", version.c_str());
+
+			if (version == "12.1") // handle 12.1 model conversions
+			{
+				// convert v12.1 vg to v9 vg
+				std::string vgFilePath = ChangeExtension(mdlPath, "vg");
+
+				if (FILE_EXISTS(vgFilePath))
+				{
+					uintmax_t vgInputSize = GetFileSize(vgFilePath);
+
+					char* vgInputBuf = new char[vgInputSize];
+
+					std::ifstream ifs(vgFilePath, std::ios::in | std::ios::binary);
+
+					ifs.read(vgInputBuf, vgInputSize);
+
+					// if 0tVG magic
+					if (*(int*)vgInputBuf == 'GVt0')
+						ConvertVGData_12_1(vgInputBuf, vgFilePath);
+					else
+						delete[] vgInputBuf;
+				}
+			}
+			else if (version == "8")
+			{
+				CreateVGFile_v8(mdlPath);
+			}
+			else
+			{
+				Error("version is not currently supported\n");
+			}
+
+			break;
+		}
+		default:
+		{
+			Error("MDL version %i is currently unsupported\n", mdlVersion);
+			break;
+		}
+		}
 	}
-	case MdlVersion::PORTAL2:
+	else if (mdlPath.find(".rseq"))
 	{
-		uintmax_t mdlFileSize = GetFileSize(mdlPath);
+		printf("seq gaming\n");
 
-		mdlIn.seek(0, std::ios::beg);
-
-		char* mdlBuf = new char[mdlFileSize];
-
-		mdlIn.getReader()->read(mdlBuf, mdlFileSize);
-
-		ConvertMDLData_49(mdlBuf, mdlPath);
-
-		delete[] mdlBuf;
-
-		break;
-	}
-	case MdlVersion::TITANFALL:
-	{
-		uintmax_t mdlFileSize = GetFileSize(mdlPath);
-
-		mdlIn.seek(0, std::ios::beg);
-
-		char* mdlBuf = new char[mdlFileSize];
-
-		mdlIn.getReader()->read(mdlBuf, mdlFileSize);
-
-		ConvertMDLDataFrom52To53(mdlBuf, mdlPath);
-
-		delete[] mdlBuf;
-
-		break;
-	}
-	case MdlVersion::TITANFALL2:
-	{
-		uintmax_t mdlFileSize = GetFileSize(mdlPath);
-
-		mdlIn.seek(0, std::ios::beg);
-
-		char* mdlBuf = new char[mdlFileSize];
-
-		mdlIn.getReader()->read(mdlBuf, mdlFileSize);
-
-		ConvertMDLData_53(mdlBuf, mdlPath);
-
-		delete[] mdlBuf;
-
-		break;
-	}
-	case MdlVersion::APEXLEGENDS:
-	{
-		// rmdl subversion
-		std::string version = "12.1";
+		std::string version = "7.1";
 
 		if (cmdline.HasParam("-version"))
 		{
-			version = cmdline.GetParamValue("-version", "12.1");
+			version = cmdline.GetParamValue("-version", "7.1");
 		}
 		else
 		{
-			std::cout << pszVersionHelpString;
+			std::cout << pszRSeqVersionHelpString;
 			std::cin >> version;
 		}
 
-		printf("Input file is RMDL v%s. attempting conversion...\n", version.c_str());
+		uintmax_t seqFuleSize = GetFileSize(mdlPath);
 
-		if (version == "12.1") // handle 12.1 model conversions
+		mdlIn.seek(0, std::ios::beg);
+
+		char* seqBuf = new char[seqFuleSize];
+
+		mdlIn.getReader()->read(seqBuf, seqFuleSize);
+
+		if (version == "7.1")
 		{
-			// convert v12.1 vg to v9 vg
-			std::string vgFilePath = ChangeExtension(mdlPath, "vg");
+			//printf("converting rseq version 7.1 to version 7\n");
 
-			if (FILE_EXISTS(vgFilePath))
-			{
-				uintmax_t vgInputSize = GetFileSize(vgFilePath);
-
-				char* vgInputBuf = new char[vgInputSize];
-
-				std::ifstream ifs(vgFilePath, std::ios::in | std::ios::binary);
-
-				ifs.read(vgInputBuf, vgInputSize);
-
-				// if 0tVG magic
-				if (*(int*)vgInputBuf == 'GVt0')
-					ConvertVGData_12_1(vgInputBuf, vgFilePath);
-				else
-					delete[] vgInputBuf;
-			}
-		}
-		else if (version == "8")
-		{
-			CreateVGFile_v8(mdlPath);
-		}
-		else
-		{
-			Error("version is not currently supported\n");
+			ConvertRSEQFrom71To7(seqBuf, mdlPath);
 		}
 
-		break;
+		delete[] seqBuf;
 	}
-	default:
+	else
 	{
-		Error("MDL version %i is currently unsupported\n", mdlVersion);
-		break;
+		Error("invalid input file. must be a valid .(r)mdl file with magic 'IDST'\n");
 	}
-	}
+
 
 	if(!cmdline.HasParam("-nopause"))
 		std::system("pause");

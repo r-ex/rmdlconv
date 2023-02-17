@@ -105,6 +105,7 @@
 #define STUDIO_ANIM_UNK3    0x0040  // used on something that is clearly not a frame anim in v54
 									// animseq/humans/class/heavy/mp_pilot_heavy_core/mp_pt_crypto_base_execution_heavy_victim.rseq
 #define STUDIO_ANIM_UNK		0x20000 // actually first in v52
+									// apex will skip animation data if this flag is not present
 #define STUDIO_ANIM_UNK1	0x40000
 #define STUDIO_ANIM_UNK2	0x80000 // cherry blossom v53, levi in v54
 
@@ -1652,6 +1653,8 @@ struct s_modeldata_t
 	void* pHdr;
 	inline r5::v8::studiohdr_t* hdrV54() { return reinterpret_cast<r5::v8::studiohdr_t*>(pHdr); }
 	inline r2::studiohdr_t* hdrV53() { return reinterpret_cast<r2::studiohdr_t*>(pHdr); }
+
+	inline r5::v8::mstudioseqdesc_t* seqV7() { return reinterpret_cast<r5::v8::mstudioseqdesc_t*>(pHdr); }
 
 	std::vector<stringentry_t> stringTable;
 	char* pBase;
