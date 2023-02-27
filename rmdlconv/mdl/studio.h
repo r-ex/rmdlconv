@@ -2067,7 +2067,7 @@ static int ConvertAnimationSections(char* pOldSeqExtBuf, r5::v121::mstudioanimde
 
 	int index = g_model.pData - (char*)pNewAnimDesc;
 
-	int numSections = ceil(((float)pNewAnimDesc->numframes) / (float)pNewAnimDesc->sectionframes) + 1;
+	int numSections = ceil(((float)pNewAnimDesc->numframes - 1) / (float)pNewAnimDesc->sectionframes) + 1;
 
 	std::vector<r2::mstudioanimsections_t*>sectionIndexes;
 
@@ -2176,7 +2176,7 @@ static int ConvertAnimationFrameMovement(r5::v8::mstudioframemovement_t* pOldFra
 	r5::v8::mstudioframemovement_t* oldFrameMovement = pOldFrameMovement;
 	r5::v8::mstudioframemovement_t* newFrameMovement = reinterpret_cast<r5::v8::mstudioframemovement_t*>(g_model.pData);
 
-	int numSections = ceil((float)pNewAnimDesc->numframes / (float)oldFrameMovement->sectionframes);
+	int numSections = ceil(((float)pNewAnimDesc->numframes - 1) / (float)oldFrameMovement->sectionframes);
 	bool hasSectionData = false;
 
 	// very bad
