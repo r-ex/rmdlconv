@@ -27,4 +27,5 @@ void CreateVGFile_v8(const std::string& filePath);
 void ConvertMDLDataFrom52To53(char* inputBuf, const std::string& filePath);
 
 // rseq conversion
-void ConvertRSEQFrom71To7(char* inputBuf, const std::string& filePath);
+void ConvertRSEQFrom71To7(char* inputBuf, char* inputExternalBuf, const std::string& filePath);
+void ConvertRSEQFrom10To7(char* inputBuf, char* inputExternalBuf, const std::string& filePath);

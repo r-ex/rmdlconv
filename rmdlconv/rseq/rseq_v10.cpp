@@ -8,17 +8,17 @@
 
 /*
 	Type:    RSEQ
-	Version: 7.1
-	Game:    Apex Legends Seasons 7-8
+	Version: 10
+	Game:    Apex Legends Seasons 9-14
 
 	Files: .rseq
 */
 
 //
 // ConvertSequenceEvents
-// Purpose: transfers data from the existing mstudioevent_t struct to the new one (seasons 0-8)
+// Purpose: transfers data from the existing mstudioevent_t struct to the new one (seasons 9-14)
 //
-int ConvertSequenceEvents(r5::v8::mstudioevent_t* pOldEvents, int numEvents)
+int ConvertSequenceEvents(r5::v122::mstudioevent_t* pOldEvents, int numEvents)
 {
 	printf("converting %i events...\n", numEvents);
 
@@ -26,7 +26,7 @@ int ConvertSequenceEvents(r5::v8::mstudioevent_t* pOldEvents, int numEvents)
 
 	for (int eventIdx = 0; eventIdx < numEvents; eventIdx++)
 	{
-		r5::v8::mstudioevent_t* oldEvent = &pOldEvents[eventIdx];
+		r5::v122::mstudioevent_t* oldEvent = &pOldEvents[eventIdx];
 		r5::v8::mstudioevent_t* newEvent = reinterpret_cast<r5::v8::mstudioevent_t*>(g_model.pData);
 
 		newEvent->cycle = oldEvent->cycle;
@@ -48,10 +48,10 @@ int ConvertSequenceEvents(r5::v8::mstudioevent_t* pOldEvents, int numEvents)
 #define FILEBUFSIZE (32 * 1024 * 1024)
 
 //
-// ConvertRSEQFrom71To7
-// Purpose: converts rseq data from version 7.1 (seasons 7-8) to version 7 (seasons 0-6)
+// ConvertRSEQFrom10To7
+// Purpose: converts rseq data from version 10 (seasons 9-14) to version 7 (seasons 0-6)
 //
-void ConvertRSEQFrom71To7(char* buf, char* externalbuf, const std::string& filePath)
+void ConvertRSEQFrom10To7(char* buf, char* externalbuf, const std::string& filePath)
 {
 	TIME_SCOPE(__FUNCTION__);
 
@@ -91,7 +91,7 @@ void ConvertRSEQFrom71To7(char* buf, char* externalbuf, const std::string& fileP
 
 	// copy over data from old events, nothing changed between 7.1 and 7 here.
 	input.seek(oldSeqDesc->eventindex, rseekdir::beg);
-	g_model.seqV7()->eventindex = ConvertSequenceEvents((r5::v8::mstudioevent_t*)input.getPtr(), oldSeqDesc->numevents);
+	g_model.seqV7()->eventindex = ConvertSequenceEvents((r5::v122::mstudioevent_t*)input.getPtr(), oldSeqDesc->numevents);
 
 	// no strings so copy directly.
 	printf("copying %i autolayers...\n", pSeq->numautolayers);

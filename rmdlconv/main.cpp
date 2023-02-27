@@ -193,19 +193,37 @@ int main(int argc, char** argv)
 			std::cin >> version;
 		}
 
-		uintmax_t seqFuleSize = GetFileSize(mdlPath);
+		uintmax_t seqFileSize = GetFileSize(mdlPath);
 
 		mdlIn.seek(0, std::ios::beg);
 
-		char* seqBuf = new char[seqFuleSize];
+		char* seqBuf = new char[seqFileSize];
 
-		mdlIn.getReader()->read(seqBuf, seqFuleSize);
+		mdlIn.getReader()->read(seqBuf, seqFileSize);
+
+
+		std::string rseqExtPath = ChangeExtension(mdlPath, "rseq_ext");
+		char* seqExternalBuf = nullptr;
+		if (FILE_EXISTS(rseqExtPath))
+		{
+			int seqExtFileSize = GetFileSize(rseqExtPath);
+
+			seqExternalBuf = new char[seqExtFileSize];
+
+			std::ifstream ifs(rseqExtPath, std::ios::in | std::ios::binary);
+
+			ifs.read(seqExternalBuf, seqExtFileSize);
+		}
 
 		if (version == "7.1")
 		{
 			//printf("converting rseq version 7.1 to version 7\n");
 
-			ConvertRSEQFrom71To7(seqBuf, mdlPath);
+			ConvertRSEQFrom71To7(seqBuf, seqExternalBuf, mdlPath);
+		}
+		else if (version == "10")
+		{
+			ConvertRSEQFrom10To7(seqBuf, seqExternalBuf, mdlPath);
 		}
 
 		delete[] seqBuf;

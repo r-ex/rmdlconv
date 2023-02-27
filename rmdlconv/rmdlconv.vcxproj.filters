@@ -63,6 +63,9 @@
     <ClCompile Include="rseq\rseq_71.cpp">
       <Filter>Source Files\rseq</Filter>
     </ClCompile>
+    <ClCompile Include="rseq\rseq_v10.cpp">
+      <Filter>Source Files\rseq</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BinaryIO.h">

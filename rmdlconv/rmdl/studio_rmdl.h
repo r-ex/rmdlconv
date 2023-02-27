@@ -35,6 +35,17 @@ struct mstudiobodyparts_t
 	int modelindex; // index into models array
 };
 
+union mstudioanimvalue_t
+{
+	struct
+	{
+		unsigned char	valid; // number of valid frames, or how many frames of data this value has
+							   // unsigned because it exceeds 0x7f in places.
+		byte	total; // total number of frames, aka "values"
+	} num;
+	short		value; // actual value, value*posscale
+};
+
 namespace r5 // apex legends
 {
 	namespace v8
@@ -467,6 +478,85 @@ namespace r5 // apex legends
 			int sectionframes; // number of frames used in each fast lookup section, zero if not used
 		};
 
+		#define STUDIO_ANIM_POS		0x1 // animation has pos values
+		#define STUDIO_ANIM_ROT		0x2	// animation has rot values
+		#define STUDIO_ANIM_SCALE	0x4	// animation has scale values
+
+		#define STUDIO_ANIMPTR_Z	0x01 // mstudioanimvalue_t
+		#define STUDIO_ANIMPTR_Y	0x02 // mstudioanimvalue_t
+		#define STUDIO_ANIMPTR_X	0x04 // mstudioanimvalue_t
+
+		struct mstudioanim_valueptr_t
+		{
+			short offset : 13;
+			short flags : 3;
+			unsigned char axisIdx1; // these two are definitely unsigned
+			unsigned char axisIdx2;
+		};
+
+		struct mstudio_rle_anim_t
+		{
+
+			short size : 13; // total size of all animation data, not next offset because even the last one has it
+			short flags : 3;
+
+			/*missing data here for now*/
+		};
+
+		struct mstudiocompressedikerror_t
+		{
+			float scale[6]; // these values are the same as what posscale (if it was used) and rotscale are.
+			int sectionframes; // frames per section, may not match animdesc
+		};
+
+		struct mstudioikrule_t
+		{
+			int index;
+			int type;
+			int chain;
+			int bone; // gets it from ikchain now pretty sure
+
+			int slot; // iktarget slot. Usually same as chain.
+			float height;
+			float radius;
+			float floor;
+			Vector3 pos;
+			Quaternion q;
+
+			// apex does this oddly
+			mstudiocompressedikerror_t compressedikerror;
+			int compressedikerrorindex;
+
+			int iStart;
+			int ikerrorindex;
+
+			float start; // beginning of influence
+			float peak; // start of full influence
+			float tail; // end of full influence
+			float end; // end of all influence
+
+			float contact; // frame footstep makes ground concact
+			float drop; // how far down the foot should drop when reaching for IK
+			float top; // top of the foot box
+
+			int szattachmentindex; // name of world attachment
+
+			float endHeight; // new in v52   
+		};
+
+		// basically compressedikerrors and frame movements will have an array of offsets that leads into the traditional 'short offset' array, allowing it to have per section (if the anim uses sections) data
+		struct mstudioframemovement_t
+		{
+			float scale[4]; // first three values are the same as what posscale (if it was used) is, fourth is similar to unkvector1.
+			int sectionframes; // frames per section, may not match animdesc
+							   // may have more than one, even when not section anim
+
+			int* SectionOffsets(int sectionIndex)
+			{
+				return reinterpret_cast<int*>((char*)this + sizeof(mstudioframemovement_t)) + sectionIndex;
+			}
+		};
+
 		struct mstudiomesh_t
 		{
 			int material;
@@ -769,6 +859,30 @@ namespace r5 // apex legends
 			int unk1[4]; // is this even real?
 
 			// it seems like there's another int here but I'm unsure
+		};
+
+		#pragma pack(push, 4)
+		struct mstudioanimsections_t
+		{
+			int animindex;
+			bool external;
+		};
+		#pragma push(pop)
+	}
+
+	namespace v122
+	{
+		struct mstudioevent_t
+		{
+			float cycle;
+			int	event;
+			int type; // this will be 0 if old style I'd imagine
+
+			int unk; // 2, 4, animseq/weapons/crypto_heirloom/ptpov_sword_crypto/draw.rseq
+
+			char options[256]; // this is the only difference compared to normal v54
+
+			int szeventindex;
 		};
 	}
 }

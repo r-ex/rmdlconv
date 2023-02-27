@@ -102,12 +102,13 @@
 #define STUDIO_EVENT_CLIENT 0x10000	// Has been updated at runtime to event index on client
 
 // new in respawn models
-#define STUDIO_ANIM_UNK3    0x0040  // used on something that is clearly not a frame anim in v54
+#define STUDIO_FRAMEMOVEMENT	0x40000 // this animation has a movement track, added in Titanfall 1
+
+#define STUDIO_ANIM_UNK3		0x0040  // used on something that is clearly not a frame anim in v54
 									// animseq/humans/class/heavy/mp_pilot_heavy_core/mp_pt_crypto_base_execution_heavy_victim.rseq
-#define STUDIO_ANIM_UNK		0x20000 // actually first in v52
-									// apex will skip animation data if this flag is not present
-#define STUDIO_ANIM_UNK1	0x40000
-#define STUDIO_ANIM_UNK2	0x80000 // cherry blossom v53, levi in v54
+#define STUDIO_ANIM_UNK			0x20000 // actually first in v52
+										// apex will skip animation data if this flag is not present
+#define STUDIO_ANIM_UNK2		0x80000 // cherry blossom v53, levi in v54
 
 #pragma pack(push, 1)
 #define MAX_NUM_BONES_PER_VERT 3
@@ -1899,4 +1900,381 @@ static void ConvertLinearBoneTableTo53(mstudiolinearbone_t* pOldLinearBone, char
 	g_model.pData += (sizeof(Vector3) + sizeof(Quaternion)) * newLinearBone->numbones;
 
 	ALIGN4(g_model.pData);
+}
+
+//==========
+// RSEQ
+//==========
+
+//
+// ConvertSequenceHdr
+// Purpose: transfers data from the existing mstudioseqdesc_t struct to the new one (seasons 0-14)
+//
+static void ConvertSequenceHdr(r5::v8::mstudioseqdesc_t * out, r5::v8::mstudioseqdesc_t * oldDesc)
+{
+	out->baseptr = oldDesc->baseptr; // should alwalts be start of file
+
+	out->flags = oldDesc->flags;
+	out->actweight = oldDesc->actweight;
+	out->numevents = oldDesc->numevents;
+
+	out->bbmin = oldDesc->bbmin;
+	out->bbmax = oldDesc->bbmax;
+
+	out->numblends = oldDesc->numblends;
+
+	out->groupsize[0] = oldDesc->groupsize[0];
+	out->groupsize[1] = oldDesc->groupsize[1];
+	out->paramindex[0] = oldDesc->paramindex[0];
+	out->paramindex[1] = oldDesc->paramindex[1];
+	out->paramstart[0] = oldDesc->paramstart[0];
+	out->paramstart[1] = oldDesc->paramstart[1];
+	out->paramend[0] = oldDesc->paramend[0];
+	out->paramend[1] = oldDesc->paramend[1];
+	out->paramparent = oldDesc->paramparent;
+
+	out->fadeintime = oldDesc->fadeintime;
+	out->fadeouttime = oldDesc->fadeouttime;
+
+	out->localentrynode = oldDesc->localentrynode;
+	out->localexitnode = oldDesc->localexitnode;
+	out->nodeflags = oldDesc->nodeflags;
+
+	out->entryphase = oldDesc->entryphase;
+	out->exitphase = oldDesc->exitphase;
+
+	out->lastframe = oldDesc->lastframe;
+
+	out->nextseq = oldDesc->nextseq;
+	out->pose = oldDesc->pose;
+
+	out->numikrules = oldDesc->numikrules;
+	out->numautolayers = oldDesc->numautolayers;
+	out->numiklocks = oldDesc->numiklocks;
+
+	//out->keyvaluesize = oldDesc.keyvaluesize; // honestly unsure how this functions overall and if it exists in respawn made sequences to begin with
+
+	out->numactivitymodifiers = oldDesc->numactivitymodifiers;
+
+	out->ikResetMask = oldDesc->ikResetMask;
+	out->unk1 = oldDesc->unk1;
+
+	out->unkcount = oldDesc->unkcount;
+}
+
+//
+// ConvertSequenceActMods
+// Purpose: transfers data from the existing mstudioactivitymodifier_t struct to the new one (seasons 0-14)
+//
+static int ConvertSequenceActMods(r1::mstudioactivitymodifier_t* pOldActMods, int numActMods)
+{
+	printf("converting %i activitymodifiers...\n", numActMods);
+
+	int index = g_model.pData - g_model.pBase;
+
+	for (int actModIdx = 0; actModIdx < numActMods; actModIdx++)
+	{
+		r1::mstudioactivitymodifier_t* oldActivityModifier = &pOldActMods[actModIdx];
+		r1::mstudioactivitymodifier_t* newActivityModifier = reinterpret_cast<r1::mstudioactivitymodifier_t*>(g_model.pData);
+
+		AddToStringTable((char*)newActivityModifier, &newActivityModifier->sznameindex, STRING_FROM_IDX(oldActivityModifier, oldActivityModifier->sznameindex));
+		newActivityModifier->negate = oldActivityModifier->negate;
+
+		g_model.pData += sizeof(r1::mstudioactivitymodifier_t);
+
+		ALIGN4(g_model.pData);
+	}
+
+	return index;
+}
+
+//
+// ConvertSequenceUnknown
+// Purpose: transfer data from unkseqdata_t if used
+//
+static int ConvertSequenceUnknown(r5::v8::unkseqdata_t* pOldUnknown, int numUnknown)
+{
+	printf("converting %i unknown data...\n", numUnknown);
+
+	int index = g_model.pData - g_model.pBase;
+
+	for (int unkIdx = 0; unkIdx < numUnknown; unkIdx++)
+	{
+		r5::v8::unkseqdata_t* oldUnknown = &pOldUnknown[unkIdx];
+		r5::v8::unkseqdata_t* newUnknown = reinterpret_cast<r5::v8::unkseqdata_t*>(g_model.pData);
+
+		newUnknown->unkfloat = oldUnknown->unkfloat;
+		newUnknown->unk = oldUnknown->unk;
+		newUnknown->unkfloat1 = oldUnknown->unkfloat1;
+		newUnknown->unkfloat2 = oldUnknown->unkfloat2;
+		newUnknown->unkfloat3 = oldUnknown->unkfloat3;
+		newUnknown->unkfloat4 = oldUnknown->unkfloat4;
+
+		g_model.pData += sizeof(r5::v8::unkseqdata_t);
+	}
+
+	return index;
+}
+
+//
+// ConvertAnimation
+// Purpose: copy animation from the old animation to the new animation
+//
+static int ConvertAnimation(char* pOldAnimIndex, r5::v8::mstudioanimdesc_t* pNewAnimDesc, int numBones)
+{
+	printf("converting animation...\n");
+
+	int index = g_model.pData - (char*)pNewAnimDesc;
+
+	if ((pNewAnimDesc->flags & STUDIO_ALLZEROS) || !(pNewAnimDesc->flags & STUDIO_ANIM_UNK))
+		return index;
+
+	int flagSize = ((4 * numBones + 7) / 8 + 1) & 0xFFFFFFFE;
+
+	memcpy(g_model.pData, pOldAnimIndex, flagSize);
+	g_model.pData += flagSize;
+
+	ALIGN2(g_model.pData);
+
+	int animationSize = 0;
+
+	r5::v8::mstudio_rle_anim_t* pOldRleAnim = (r5::v8::mstudio_rle_anim_t*)&pOldAnimIndex[flagSize];
+
+	for (int boneIdx = 0; boneIdx < numBones; boneIdx++)
+	{
+		if ((pOldAnimIndex[boneIdx / 2] >> (4 * (boneIdx % 2))) & 0x7)
+		{
+			animationSize += pOldRleAnim->size;
+			pOldRleAnim = reinterpret_cast<r5::v8::mstudio_rle_anim_t*>((char*)pOldRleAnim + pOldRleAnim->size);
+		}
+	}
+
+	memcpy(g_model.pData, pOldAnimIndex + flagSize, animationSize);
+	g_model.pData += animationSize;
+
+	ALIGN4(g_model.pData);
+
+	return index;
+}
+
+//
+// ConvertAnimationSections
+// Purpose: parses sections for 'ConvertAnimation', including pulling from an external file when needed
+//
+static int ConvertAnimationSections(char* pOldSeqExtBuf, r5::v121::mstudioanimdesc_t* pOldAnimDesc, r5::v8::mstudioanimdesc_t* pNewAnimDesc, int numBones)
+{
+	char* pSectionAnimStart = g_model.pData;
+
+	int index = g_model.pData - (char*)pNewAnimDesc;
+
+	int numSections = ceil(((float)pNewAnimDesc->numframes) / (float)pNewAnimDesc->sectionframes) + 1;
+
+	std::vector<r2::mstudioanimsections_t*>sectionIndexes;
+
+	for (int sectionIdx = 0; sectionIdx < numSections; sectionIdx++)
+	{
+		r2::mstudioanimsections_t* sectionIndex = reinterpret_cast<r2::mstudioanimsections_t*>(g_model.pData);
+		g_model.pData += sizeof(int);
+
+		sectionIndexes.push_back(sectionIndex);
+	}
+
+	ALIGN16(g_model.pData);
+
+	pNewAnimDesc->animindex = g_model.pData - (char*)pNewAnimDesc;
+
+	for (auto sectionIndex : sectionIndexes)
+	{
+		int currentSectionIdx = ((char*)sectionIndex - pSectionAnimStart) / sizeof(r2::mstudioanimsections_t);
+
+		r5::v121::mstudioanimsections_t* oldSectionIndex = PTR_FROM_IDX(r5::v121::mstudioanimsections_t, pOldAnimDesc, pOldAnimDesc->sectionindex + (sizeof(r5::v121::mstudioanimsections_t) * currentSectionIdx));
+
+		ALIGN4(g_model.pData);
+
+		if (oldSectionIndex->external && !pOldSeqExtBuf)
+			Error("failed to find external file for sections when it was required!");
+
+		if (oldSectionIndex->external)
+		{
+			sectionIndex->animindex = ConvertAnimation(PTR_FROM_IDX(char, pOldSeqExtBuf, oldSectionIndex->animindex), pNewAnimDesc, numBones);
+		}
+		else
+		{
+			sectionIndex->animindex = ConvertAnimation(PTR_FROM_IDX(char, pOldAnimDesc, oldSectionIndex->animindex), pNewAnimDesc, numBones);
+		}
+	}
+
+	return index;
+}
+
+//
+// ConvertAnimationIkRules
+// Purpose: copy IkRules from the old animation to the new animation
+//
+static int ConvertAnimationIkRules(r5::v8::mstudioikrule_t* pOldIkRules, r5::v8::mstudioanimdesc_t* pNewAnimDesc)
+{
+	printf("converting %i ikrules...\n", pNewAnimDesc->numikrules);
+
+	int index = g_model.pData - (char*)pNewAnimDesc;
+
+	for (int ikRuleIdx = 0; ikRuleIdx < pNewAnimDesc->numikrules; ikRuleIdx++)
+	{
+		r5::v8::mstudioikrule_t* oldIkRule = &pOldIkRules[ikRuleIdx];
+		r5::v8::mstudioikrule_t* newIkRule = reinterpret_cast<r5::v8::mstudioikrule_t*>(g_model.pData);
+
+		newIkRule->index = oldIkRule->index;
+		newIkRule->type = oldIkRule->type;
+		newIkRule->chain = oldIkRule->chain;
+		newIkRule->bone = oldIkRule->bone;
+
+		newIkRule->slot = oldIkRule->slot;
+		newIkRule->height = oldIkRule->height;
+		newIkRule->radius = oldIkRule->radius;
+		newIkRule->floor = oldIkRule->floor;
+		newIkRule->pos = oldIkRule->pos;
+		newIkRule->q = oldIkRule->q;
+
+		// do this later
+		//newIkRule->compressedikerror = oldIkRule->compressedikerror;
+		newIkRule->compressedikerrorindex = oldIkRule->compressedikerrorindex;
+
+		newIkRule->iStart = oldIkRule->iStart;
+		//newIkRule->ikerrorindex = oldIkRule->ikerrorindex;
+
+		newIkRule->start = oldIkRule->start;
+		newIkRule->peak = oldIkRule->peak;
+		newIkRule->tail = oldIkRule->tail;
+		newIkRule->end = oldIkRule->end;
+
+		newIkRule->contact = oldIkRule->contact;
+		newIkRule->drop = oldIkRule->drop;
+		newIkRule->top = oldIkRule->top;
+
+		//newIkRule->szattachmentindex = oldIkRule->szattachmentindex;
+
+		newIkRule->endHeight = oldIkRule->endHeight;
+
+		g_model.pData += sizeof(r5::v8::mstudioikrule_t);
+	}
+
+	ALIGN4(g_model.pData);
+
+	return index;
+}
+
+//
+// ConvertAnimationFrameMovement
+// Purpose: copy Frame Movement from the old animation to the new animation
+//
+static int ConvertAnimationFrameMovement(r5::v8::mstudioframemovement_t* pOldFrameMovement, r5::v8::mstudioanimdesc_t* pNewAnimDesc)
+{
+	printf("converting framemovement...\n");
+
+	int index = g_model.pData - (char*)pNewAnimDesc;
+
+	char* pEndPtr = (char*)pOldFrameMovement;
+	r5::v8::mstudioframemovement_t* oldFrameMovement = pOldFrameMovement;
+	r5::v8::mstudioframemovement_t* newFrameMovement = reinterpret_cast<r5::v8::mstudioframemovement_t*>(g_model.pData);
+
+	int numSections = ceil((float)pNewAnimDesc->numframes / (float)oldFrameMovement->sectionframes);
+	bool hasSectionData = false;
+
+	// very bad
+	// redo this now that I understand it
+	pEndPtr = pEndPtr + *pOldFrameMovement->SectionOffsets(numSections - 1);
+
+	for (int sectionIdx = 3; sectionIdx > -1; sectionIdx--)
+	{
+		if (*(pEndPtr + (sizeof(short) * sectionIdx)))
+		{
+			pEndPtr = pEndPtr + *(pEndPtr + (sizeof(short) * sectionIdx));
+
+			hasSectionData = true;
+
+			break;
+		}
+	}
+
+	if (hasSectionData)
+	{
+		while (*pEndPtr)
+		{
+			pEndPtr = pEndPtr + (*pEndPtr * sizeof(mstudioanimvalue_t));
+		}
+
+		pEndPtr = pEndPtr + 1;
+	}
+	else
+	{
+		pEndPtr = pEndPtr + (4 * sizeof(short));
+	}
+
+	memcpy(g_model.pData, pOldFrameMovement, pEndPtr - (char*)pOldFrameMovement);
+	g_model.pData += pEndPtr - (char*)pOldFrameMovement;
+
+	ALIGN4(g_model.pData);
+
+	return index;
+}
+
+//
+// ConvertSequenceAnims
+// Purpose: converts a rseq v7.1 animation to a rseq v7 animation
+//
+static void ConvertSequenceAnims(char* pOldSeq, char* pOldSeqExtBuf, char* pNewSeq, int* pOldAnimIndexes, int numAnims, int numBones)
+{
+	char* pAnimIndexStart = g_model.pData;
+
+	std::vector<int*> animIndexes;
+
+	printf("converting %i animations...\n", numAnims);
+
+	for (int currentAnimIdx = 0; currentAnimIdx < numAnims; currentAnimIdx++)
+	{
+		int* animIndex = reinterpret_cast<int*>(g_model.pData);
+		g_model.pData += sizeof(int);
+
+		animIndexes.push_back(animIndex);
+	}
+
+	for (auto animIndex : animIndexes)
+	{
+		int currentAnimIdx = ((char*)animIndex - pAnimIndexStart) / sizeof(int);
+
+		r5::v121::mstudioanimdesc_t* oldAnimDesc = PTR_FROM_IDX(r5::v121::mstudioanimdesc_t, pOldSeq, pOldAnimIndexes[currentAnimIdx]);
+		r5::v8::mstudioanimdesc_t* newAnimDesc = reinterpret_cast<r5::v8::mstudioanimdesc_t*>(g_model.pData);
+
+		*animIndex = (char*)newAnimDesc - (char*)pNewSeq;
+
+		newAnimDesc->baseptr = oldAnimDesc->baseptr;
+
+		AddToStringTable((char*)newAnimDesc, &newAnimDesc->sznameindex, STRING_FROM_IDX(oldAnimDesc, oldAnimDesc->sznameindex));
+
+		newAnimDesc->fps = oldAnimDesc->fps;
+		newAnimDesc->flags = oldAnimDesc->flags;
+		newAnimDesc->numframes = oldAnimDesc->numframes;
+		newAnimDesc->nummovements = oldAnimDesc->nummovements;
+		newAnimDesc->numikrules = oldAnimDesc->numikrules;
+		newAnimDesc->sectionframes = oldAnimDesc->sectionframes;
+
+		g_model.pData += sizeof(r5::v8::mstudioanimdesc_t);
+
+
+		if (newAnimDesc->sectionframes)
+		{
+			newAnimDesc->sectionindex = ConvertAnimationSections(pOldSeqExtBuf, oldAnimDesc, newAnimDesc, numBones);
+		}
+		else
+		{
+			ALIGN16(g_model.pData);
+			newAnimDesc->animindex = ConvertAnimation(PTR_FROM_IDX(char, oldAnimDesc, oldAnimDesc->animindex), newAnimDesc, numBones);
+		}
+
+		// needs compressed ik error
+		if (newAnimDesc->numikrules)
+			newAnimDesc->ikruleindex = ConvertAnimationIkRules(PTR_FROM_IDX(r5::v8::mstudioikrule_t, oldAnimDesc, oldAnimDesc->ikruleindex), newAnimDesc);
+
+		if (oldAnimDesc && (newAnimDesc->flags & STUDIO_FRAMEMOVEMENT))
+			newAnimDesc->framemovementindex = ConvertAnimationFrameMovement(PTR_FROM_IDX(r5::v8::mstudioframemovement_t, oldAnimDesc, oldAnimDesc->framemovementindex), newAnimDesc);
+	}
 }
