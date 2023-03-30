@@ -178,6 +178,8 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 	if (proceduralBones.size() > 0)
 		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
 
+	std::map<uint8_t, uint8_t> linearprocbones;
+
 	for (auto bone : proceduralBones)
 	{
 		int boneid = ((char*)bone - pBoneStart) / sizeof(r5::v8::mstudiobone_t);
@@ -220,7 +222,31 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 		jBone->pitchFriction = oldJBone->pitchFriction;
 		jBone->pitchBounce = oldJBone->pitchBounce;
 
+		linearprocbones.emplace(jBone->bone, linearprocbones.size());
+
 		g_model.pData += sizeof(r5::v8::mstudiojigglebone_t);
+	}
+
+	ALIGN4(g_model.pData);
+
+	if (linearprocbones.size() == 0)
+		return;
+
+	g_model.hdrV54()->numprocbones = linearprocbones.size();
+	g_model.hdrV54()->procbonetableindex = g_model.pData - g_model.pBase;
+
+	for (auto& it : linearprocbones)
+	{
+		*g_model.pData = it.first;
+		g_model.pData += sizeof(uint8_t);
+	}
+
+	g_model.hdrV54()->linearprocboneindex = g_model.pData - g_model.pBase;
+
+	for (int i = 0; i < numBones; i++)
+	{
+		*g_model.pData = linearprocbones.count(i) ? linearprocbones.find(i)->second : 0xff;
+		g_model.pData += sizeof(uint8_t);
 	}
 
 	ALIGN4(g_model.pData);
