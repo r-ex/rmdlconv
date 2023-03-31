@@ -188,6 +188,11 @@ void ConvertBones_49(mstudiobone_t* pOldBones, int numBones, bool isRig)
 
 		r5::v8::mstudiojigglebone_t* jBone = reinterpret_cast<r5::v8::mstudiojigglebone_t*>(g_model.pData);
 
+		if (oldJBone->flags & JIGGLE_IS_RIGID)
+		{
+			Error("Apex Legends does not support 'is_rigid' type jigglebones");
+		}
+
 		bone->procindex = (char*)jBone - (char*)bone;
 		jBone->flags = oldJBone->flags;
 		jBone->bone = boneid;
@@ -221,6 +226,8 @@ void ConvertBones_49(mstudiobone_t* pOldBones, int numBones, bool isRig)
 		jBone->maxPitch = oldJBone->maxPitch;
 		jBone->pitchFriction = oldJBone->pitchFriction;
 		jBone->pitchBounce = oldJBone->pitchBounce;
+
+		jBone->flags |= JIGGLE_UNK; // this is required for a lot of jigglbone checks, they no longer check for 'JIGGLE_IS_FLEXIBLE'
 
 		linearprocbones.emplace(jBone->bone, linearprocbones.size());
 

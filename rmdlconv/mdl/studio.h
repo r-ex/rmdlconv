@@ -345,6 +345,15 @@ struct mstudioanimblock_t
 	int dataend;
 };
 
+#define JIGGLE_IS_FLEXIBLE				0x01
+#define JIGGLE_IS_RIGID					0x02
+#define JIGGLE_UNK						0x02 // apex
+#define JIGGLE_HAS_YAW_CONSTRAINT		0x04
+#define JIGGLE_HAS_PITCH_CONSTRAINT		0x08
+#define JIGGLE_HAS_ANGLE_CONSTRAINT		0x10
+#define JIGGLE_HAS_LENGTH_CONSTRAINT	0x20
+#define JIGGLE_HAS_BASE_SPRING			0x40
+
 struct mstudiojigglebone_t
 {
 	int flags;
