@@ -35,7 +35,8 @@ const char* pszRSeqVersionHelpString = {
 
 int main(int argc, char** argv)
 {
-	printf("rmdlconv - Copyright (c) 2022, rexx\n");
+	
+	printf("rmdlconv - Copyright (c) %s, rexx\n", &__DATE__[7]);
 
 	CommandLine cmdline(argc, argv);
 
