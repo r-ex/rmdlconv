@@ -20,6 +20,16 @@
 #define ALIGN64( a ) a = (byte *)((__int64)((byte *)a + 63) & ~ 63)
 #define ALIGN512( a ) a = (byte *)((__int64)((byte *)a + 511) & ~ 511)
 
+#ifdef max
+#undef max
+#endif
+#ifdef min
+#undef min
+#endif
+
+#define max(a,b) ((a > b) ? a : b)
+#define min(a,b) ((a < b) ? a : b)
+
 static void Error(const char* fmt, ...)
 {
 	va_list args;

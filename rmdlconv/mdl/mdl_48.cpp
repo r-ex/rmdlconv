@@ -621,7 +621,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 		modelName += ".rmdl";
 	}
 
-	memcpy_s(&pHdr->name, 64, modelName.c_str(), modelName.length());
+	memcpy_s(&pHdr->name, 64, modelName.c_str(), min(modelName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, ""); // "Titan" or empty
@@ -734,7 +734,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 	// reset string table for rig
 	g_model.stringTable.clear();
 
-	memcpy_s(&pHdr->name, 64, rigName.c_str(), rigName.length());
+	memcpy_s(&pHdr->name, 64, rigName.c_str(), min(rigName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, rigName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader->unkstringindex));
