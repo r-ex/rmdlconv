@@ -442,7 +442,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 	io.getWriter()->write((char*)indices.data(), indices.size() * sizeof(uint16_t));
 
 	header.vertOffset = io.tell();
-	// write vertcies based on flags so we can have vvc stuff, and potentially other flag based stuff in the future
+	// write vertices based on flags so we can have vvc stuff, and potentially other flag based stuff in the future
 	for (int i = 0; i < vertices.size(); i++)
 	{
 		Vertex_VG_t vertex = vertices.at(i);
