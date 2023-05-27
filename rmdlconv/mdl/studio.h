@@ -301,9 +301,14 @@ struct vertexFileHeader_t
 
 	int tangentDataStart; // offset from base to tangent block
 
-	Vector4* tangent(int i)
+	inline Vector4* pTangent(int i)
 	{
 		return reinterpret_cast<Vector4*>((char*)this + tangentDataStart) + i;
+	}
+
+	inline Vector4 GetTangent(int i)
+	{
+		return *pTangent(i);
 	}
 };
 

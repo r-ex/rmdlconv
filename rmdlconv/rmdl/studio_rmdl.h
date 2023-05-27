@@ -13,11 +13,13 @@
 #define STUDIOHDR_FLAGS_USES_UV2			0x2000000 // model has/uses secondary uv layer
 
 // vg mesh flags
-#define VG_POSITION         0x1
-#define VG_PACKED_POSITION  0x2
-#define VG_VERTEX_COLOR     0x10 // see: STUDIOHDR_FLAGS_USES_VERTEX_COLOR
-#define VG_PACKED_WEIGHTS   0x5000
-#define VG_UV_LAYER2        0x200000000 // see: STUDIOHDR_FLAGS_USES_UV2
+#define VERTEX_HAS_POSITION         0x1
+#define VERTEX_HAS_POSITION_PACKED  0x2
+#define VERTEX_HAS_COLOR			0x10
+#define VERTEX_HAS_WEIGHTS			0x1000
+#define VERTEX_HAS_WEIGHTS_TYPE1	0x2000
+#define VERTEX_HAS_WEIGHTS_TYPE2	0x4000 // presumably this is 'packed' weights
+#define VERTEX_HAS_UV2				0x200000000
 
 // added in r1, used in v52, v53, and v54
 struct mstudio_meshvertexloddata_t
@@ -40,7 +42,7 @@ union mstudioanimvalue_t
 	struct
 	{
 		unsigned char	valid; // number of valid frames, or how many frames of data this value has
-							   // unsigned because it exceeds 0x7f in places.
+		// unsigned because it exceeds 0x7f in places.
 		byte	total; // total number of frames, aka "values"
 	} num;
 	short		value; // actual value, value*posscale
@@ -334,7 +336,7 @@ namespace r5 // apex legends
 			float baseMaxForward;
 			float baseForwardFriction;
 		};
-	
+
 		struct mstudioattachment_t
 		{
 			int sznameindex;
@@ -478,13 +480,13 @@ namespace r5 // apex legends
 			int sectionframes; // number of frames used in each fast lookup section, zero if not used
 		};
 
-		#define STUDIO_ANIM_POS		0x1 // animation has pos values
-		#define STUDIO_ANIM_ROT		0x2	// animation has rot values
-		#define STUDIO_ANIM_SCALE	0x4	// animation has scale values
+#define STUDIO_ANIM_POS		0x1 // animation has pos values
+#define STUDIO_ANIM_ROT		0x2	// animation has rot values
+#define STUDIO_ANIM_SCALE	0x4	// animation has scale values
 
-		#define STUDIO_ANIMPTR_Z	0x01 // mstudioanimvalue_t
-		#define STUDIO_ANIMPTR_Y	0x02 // mstudioanimvalue_t
-		#define STUDIO_ANIMPTR_X	0x04 // mstudioanimvalue_t
+#define STUDIO_ANIMPTR_Z	0x01 // mstudioanimvalue_t
+#define STUDIO_ANIMPTR_Y	0x02 // mstudioanimvalue_t
+#define STUDIO_ANIMPTR_X	0x04 // mstudioanimvalue_t
 
 		struct mstudioanim_valueptr_t
 		{
@@ -549,7 +551,7 @@ namespace r5 // apex legends
 		{
 			float scale[4]; // first three values are the same as what posscale (if it was used) is, fourth is similar to unkvector1.
 			int sectionframes; // frames per section, may not match animdesc
-							   // may have more than one, even when not section anim
+			// may have more than one, even when not section anim
 
 			int* SectionOffsets(int sectionIndex)
 			{
@@ -631,7 +633,7 @@ namespace r5 // apex legends
 			int linkindex;
 
 			float unk; // no clue what this does tbh, tweaking it does nothing
-					   // default value: 0.707f
+			// default value: 0.707f
 		};
 
 		struct mstudioiklink_t
@@ -861,13 +863,13 @@ namespace r5 // apex legends
 			// it seems like there's another int here but I'm unsure
 		};
 
-		#pragma pack(push, 4)
+#pragma pack(push, 4)
 		struct mstudioanimsections_t
 		{
 			int animindex;
 			bool external;
 		};
-		#pragma push(pop)
+#pragma push(pop)
 	}
 
 	namespace v122
@@ -1008,6 +1010,8 @@ struct mstudiopackedboneweight_t
 	byte numbones; // number of bones - 1, number of extra 
 };
 
+struct MeshHeader_VG_t;
+
 #pragma pack(push, 1)
 // full struct
 struct Vertex_VG_t
@@ -1019,6 +1023,8 @@ struct Vertex_VG_t
 	VertexColor_t m_color;
 	Vector2 m_vecTexCoord;
 	Vector2 m_vecTexCoord2;
+
+	__int64 parentMeshIndex; // index of the mesh that owns this vertex, used for writing
 };
 #pragma pack(pop)
 
@@ -1077,9 +1083,8 @@ enum MaterialShaderType_t : unsigned __int8
 	PTCS = 0x9,
 };
 
-uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4);
-uint32_t PackNormalTangent_UINT32(Vector3 vec, Vector4 tangent);
+uint32_t PackNormalTangent_UINT32(const Vector3& vec, const Vector4& tangent);
 
-Vector64 PackPos_UINT64(Vector3 vec);
+Vector64 PackPos_UINT64(Vector3 vec, bool& fieldOverflow);
 
 void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* vtxBuf, char* vvdBuf, char* vvcBuf = nullptr, char* vvwBuf = nullptr);

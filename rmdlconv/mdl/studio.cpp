@@ -6,66 +6,76 @@
 #include "mdl/studio.h"
 #include "versions.h"
 
-uint32_t PackNormalTangent_UINT32(Vector3 normal, Vector4 tangent)
-{
-	return PackNormalTangent_UINT32(normal.x, normal.y, normal.z, tangent.w);
-}
-
-uint32_t PackNormalTangent_UINT32(float v1, float v2, float v3, float v4)
+uint32_t PackNormalTangent_UINT32(const Vector3& normal, const Vector4& tangent)
 {
 	// normal 1 and normal 2
 	int16_t normal1, normal2;
 	uint8_t sign = 0, droppedComponent = 0;
 	float s;
 
-	float f1 = std::abs(v1);
-	float f2 = std::abs(v2);
-	float f3 = std::abs(v3);
+	Vector3 absNml = normal.Abs();
 
-	if (f1 >= f2 && f1 >= f3)
+	if (absNml.x >= absNml.y && absNml.x >= absNml.z)
 		droppedComponent = 0;
-	else if (f2 >= f1 && f2 >= f3)
+	else if (absNml.y >= absNml.x && absNml.y >= absNml.z)
 		droppedComponent = 1;
 	else
 		droppedComponent = 2;
 
-	// changed from 256 -> 255.5 because it made results near identical to vanilla vg and values read closer to vvd when using for subtraction
 	switch (droppedComponent)
 	{
 	case 0:
-		sign = v1 < 0 ? 1 : 0;
-		s = v1 / (sign ? -255 : 255);
-		normal2 = (int16_t)std::roundf((v2 / s) + 255.5);
-		normal1 = (int16_t)std::roundf((v3 / s) + 255.5);
+		sign = absNml.x < 0 ? 1 : 0;
+		s = absNml.x / (sign ? -255 : 255);
+		normal2 = (int16_t)std::roundf((absNml.y / s) + 256.f);
+		normal1 = (int16_t)std::roundf((absNml.z / s) + 256.f);
 		break;
 	case 1:
-		sign = v2 < 0 ? 1 : 0;
-		s = v2 / (sign ? -255 : 255);
-		normal1 = (int16_t)std::roundf((v1 / s) + 255.5);
-		normal2 = (int16_t)std::roundf((v3 / s) + 255.5);
+		sign = absNml.y < 0 ? 1 : 0;
+		s = absNml.y / (sign ? -255 : 255);
+		normal1 = (int16_t)std::roundf((absNml.x / s) + 256.f);
+		normal2 = (int16_t)std::roundf((absNml.z / s) + 256.f);
 		break;
 	case 2:
-		sign = v3 < 0 ? 1 : 0;
-		s = v3 / (sign ? -255 : 255);
-		normal2 = (int16_t)std::roundf((v1 / s) + 255.5);
-		normal1 = (int16_t)std::roundf((v2 / s) + 255.5);
+		sign = absNml.z < 0 ? 1 : 0;
+		s = absNml.z / (sign ? -255 : 255);
+		normal2 = (int16_t)std::roundf((absNml.x / s) + 256.f);
+		normal1 = (int16_t)std::roundf((absNml.y / s) + 256.f);
 		break;
 	default:
 		break;
 	}
 
-	char binormSign = v4 < 1 ? 1 : 0;
+	char binormSign = tangent.w < 1 ? 1 : 0;
 
-	return (binormSign << 31) + (droppedComponent << 29) + (sign << 28) + (normal2 << 19) + (normal1 << (19 - 9));
+	return (binormSign << 31)
+		| (droppedComponent << 29)
+		| (sign << 28)
+		| (normal2 << 19)
+		| (normal1 << 10);
 }
 
-Vector64 PackPos_UINT64(Vector3 vec)
-{
-	Vector64 pos;
 
-	pos.x = ((vec.x + 1024.0) / 0.0009765625);
+Vector64 PackPos_UINT64(Vector3 vec, bool& fieldOverflow)
+{
+	Vector64 pos{};
+
+	// fix if bad, didn't want to calculate twice
+	int values[3]{ ((vec.x + 1024.0) / 0.0009765625), ((vec.y + 1024.0) / 0.0009765625), ((vec.z + 2048.0) / 0.0009765625) };
+
+	if (values[0] > 0x1FFFFF || values[1] > 0x1FFFFF || values[2] > 0x3FFFFF)
+	{
+		fieldOverflow = true;
+		return pos;
+	}
+
+	pos.x = values[0];
+	pos.y = values[1];
+	pos.z = values[2];
+
+	/*pos.x = ((vec.x + 1024.0) / 0.0009765625);
 	pos.y = ((vec.y + 1024.0) / 0.0009765625);
-	pos.z = ((vec.z + 2048.0) / 0.0009765625);
+	pos.z = ((vec.z + 2048.0) / 0.0009765625);*/
 
 	return pos;
 }
@@ -114,7 +124,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 			for (int j = 0; j < bodyPart->numModels; ++j)
 			{
 				ModelHeader_t* model = bodyPart->model(j);
-				
+
 				ModelLODHeader_t* lod = model->lod(lodIdx);
 
 				lods.push_back(ModelLODHeader_VG_t{ (short)numMeshes, (short)lod->numMeshes, lod->switchPoint });
@@ -125,7 +135,6 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 				for (int l = 0; l < lod->numMeshes; ++l)
 				{
-					vertCacheSize = 0;
 					externalWeightIdx = 0; // reset index for new mesh
 
 					MeshHeader_t* mesh = lod->mesh(l);
@@ -139,33 +148,9 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 					newMesh.legacyWeightOffset = numVertices;
 					newMesh.flags = 0x2005A40; // hard coded packed weights and pos
 
-					// ideally later we add an option because some models actually use unpacked pos in vg
-					newMesh.flags |= VG_PACKED_POSITION;
+					bool vertexOverflow = false; // set to true if a position in one of the vertexes is too large to pack.
 
-					if (newMesh.flags & VG_PACKED_POSITION)
-						vertCacheSize += sizeof(Vector64);
-					else
-						vertCacheSize += sizeof(Vector3);
-
-					vertCacheSize += sizeof(mstudiopackedboneweight_t) + sizeof(uint32_t) + sizeof(Vector2); // packed weight size, packed normal size, uv size
-
-					if (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)
-					{
-						newMesh.flags |= VG_UV_LAYER2;
-						vertCacheSize += sizeof(Vector2);
-					}
-
-					if (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
-					{
-						newMesh.flags |= VG_VERTEX_COLOR;
-						vertCacheSize += sizeof(VertexColor_t);
-					}
-
-					//newMesh.flags += 0x1; // set unpacked pos flag
-					//newMesh.flags += 0x5000; // set packed weight flag
-
-					newMesh.vertCacheSize = vertCacheSize;
-					newMesh.vertOffset = numVertices * vertCacheSize;
+					newMesh.vertOffset = numVertices;
 
 					for (int m = 0; m < mesh->numStripGroups; ++m)
 					{
@@ -180,7 +165,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 						StripHeader_t newStripHeader{};
 
-						newStripHeader.stripFlags |= 0x1;
+						newStripHeader.stripFlags |= 0x1; // trilist
 
 						for (int stripIdx = 0; stripIdx < stripGroup->numStrips; stripIdx++)
 						{
@@ -195,21 +180,19 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 								Vertex_t* vertVtx = stripGroup->vert(strip->vertexOffset + vertIdx);
 
 								mstudiovertex_t* vertVvd = vvd->vertex(vtxVertOffset + vertVtx->origMeshVertID);
-								Vector4* tangentVvd = vvd->tangent(vtxVertOffset + vertVtx->origMeshVertID);
+								Vector4 tangentVvd = vvd->GetTangent(vtxVertOffset + vertVtx->origMeshVertID);
 
 								//printf("vertex %i \n", vtxVertOffset + vertVtx->origMeshVertID);
 
-								Vector4 newTangent{};
-								newTangent.x = tangentVvd->x;
-								newTangent.y = tangentVvd->y;
-								newTangent.z = tangentVvd->z;
-								newTangent.w = tangentVvd->w;
-
 								Vertex_VG_t newVert{};
-								newVert.m_NormalTangentPacked = PackNormalTangent_UINT32(vertVvd->m_vecNormal, newTangent);
-								newVert.m_vecPositionPacked = PackPos_UINT64(vertVvd->m_vecPosition);
+								newVert.m_NormalTangentPacked = PackNormalTangent_UINT32(vertVvd->m_vecNormal, tangentVvd);
 								newVert.m_vecPosition = vertVvd->m_vecPosition;
 								newVert.m_vecTexCoord = vertVvd->m_vecTexCoord;
+
+								if (!vertexOverflow)
+									newVert.m_vecPositionPacked = PackPos_UINT64(vertVvd->m_vecPosition, vertexOverflow);
+
+								newVert.parentMeshIndex = l; // set the mesh index for later usage
 
 								for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
 								{
@@ -353,6 +336,34 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 						std::memcpy(indices.data() + indicesOffset, stripGroup->indices(), stripGroup->numIndices * sizeof(uint16_t));
 					}
 
+					// set after we've gone through everything
+					if (vertexOverflow)
+					{
+						newMesh.flags |= VERTEX_HAS_POSITION;
+						newMesh.vertCacheSize += sizeof(Vector3);
+					}
+					else
+					{
+						newMesh.flags |= VERTEX_HAS_POSITION_PACKED;
+						newMesh.vertCacheSize += sizeof(Vector64);
+					}
+
+					if (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)
+					{
+						newMesh.flags |= VERTEX_HAS_UV2;
+						newMesh.vertCacheSize += sizeof(Vector2);
+					}
+
+					if (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
+					{
+						newMesh.flags |= VERTEX_HAS_COLOR;
+						newMesh.vertCacheSize += sizeof(VertexColor_t);
+					}
+
+					newMesh.vertCacheSize += sizeof(mstudiopackedboneweight_t) + sizeof(uint32_t) + sizeof(Vector2); // packed weight size, packed normal size, uv size
+
+					newMesh.vertOffset *= newMesh.vertCacheSize;
+
 					// current vertex offset into vvd
 					vtxVertOffset += rmdlMesh->vertexloddata.numLODVertexes[lodIdx];
 
@@ -436,7 +447,9 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 	{
 		Vertex_VG_t vertex = vertices.at(i);
 
-		if (meshes[0].flags & VG_PACKED_POSITION)
+		__int64 localFlags = meshes[vertex.parentMeshIndex].flags;
+
+		if (localFlags & VERTEX_HAS_POSITION_PACKED)
 			io.getWriter()->write((char*)&vertex.m_vecPositionPacked, sizeof(Vector64));
 		else
 			io.getWriter()->write((char*)&vertex.m_vecPosition, sizeof(Vector3));
@@ -444,12 +457,12 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 		io.getWriter()->write((char*)&vertex.m_BoneWeightsPacked, sizeof(mstudiopackedboneweight_t));
 		io.getWriter()->write((char*)&vertex.m_NormalTangentPacked, sizeof(uint32_t));
 
-		if (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
+		if (localFlags & VERTEX_HAS_COLOR)
 			io.getWriter()->write((char*)&vertex.m_color, sizeof(VertexColor_t));
 
 		io.getWriter()->write((char*)&vertex.m_vecTexCoord, sizeof(Vector2));
 
-		if (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)
+		if (localFlags & VERTEX_HAS_UV2)
 			io.getWriter()->write((char*)&vertex.m_vecTexCoord2, sizeof(Vector2));
 	}
 
