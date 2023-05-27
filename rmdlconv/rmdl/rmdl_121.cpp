@@ -184,7 +184,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath)
 	vgh.numBoneStateChanges = boneRemapCount;
 	vgh.numMeshes = lodSubmeshCount;
 	vgh.numIndices = indexBufSize / 2;
-	vgh.numVerts = vertexBufSize;
+	vgh.vertDataSize = vertexBufSize;
 	vgh.externalWeightsSize = extendedWeightsBufSize;
 	vgh.numLODs = vghInput.lodCount;
 	vgh.numUnknown = vgh.numLODs / vgh.numMeshes;

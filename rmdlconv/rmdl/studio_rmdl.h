@@ -981,7 +981,7 @@ struct VertexGroupHeader_t
 	__int64 numIndices;      // number of indices (size: 2 (uint16_t))
 
 	__int64 vertOffset;    // offset to vertex buffer
-	__int64 numVerts;     // number of bytes in vertex buffer
+	__int64 vertDataSize;     // number of bytes in vertex buffer
 
 	__int64 externalWeightOffset;   // offset to extended weights buffer
 	__int64 externalWeightsSize;    // number of bytes in extended weights buffer

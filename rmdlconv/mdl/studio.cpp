@@ -422,7 +422,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 	header.numMeshes = meshes.size();
 	header.numIndices = indices.size();
-	header.numVerts = vertices.size() * vertCacheSize;
+	header.vertDataSize = vertices.size() * vertCacheSize;
 	header.numLODs = lods.size();
 	header.numStrips = strips.size();
 	header.externalWeightsSize = externalWeights.size() * sizeof(mstudioexternalweight_t);
@@ -466,6 +466,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 			io.getWriter()->write((char*)&vertex.m_vecTexCoord2, sizeof(Vector2));
 	}
 
+	header.vertDataSize = io.tell() - header.vertOffset;
 	header.externalWeightOffset = io.tell();
 	io.getWriter()->write((char*)externalWeights.data(), externalWeights.size() * sizeof(mstudioexternalweight_t));
 
