@@ -146,7 +146,14 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 					newMesh.indexOffset = indices.size();
 					newMesh.externalWeightOffset = externalWeights.size() * sizeof(mstudioexternalweight_t);
 					newMesh.legacyWeightOffset = numVertices;
-					newMesh.flags = 0x2005A40; // hard coded packed weights and pos
+					newMesh.flags = 0x2000A40; // hard coded packed weights and pos
+
+					if (pHdr->numbones > 1)
+					{
+						newMesh.flags |= VERTEX_HAS_WEIGHTS;
+						newMesh.flags |= VERTEX_HAS_WEIGHTS_PACKED; // no check here because I'm not sure what the other type of weights is
+						newMesh.vertCacheSize += sizeof(mstudiopackedboneweight_t);
+					}
 
 					bool vertexOverflow = false; // set to true if a position in one of the vertexes is too large to pack.
 
@@ -185,6 +192,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 								//printf("vertex %i \n", vtxVertOffset + vertVtx->origMeshVertID);
 
 								Vertex_VG_t newVert{};
+								newVert.parentMeshIndex = l; // set the mesh index for later usage
 								newVert.m_NormalTangentPacked = PackNormalTangent_UINT32(vertVvd->m_vecNormal, tangentVvd);
 								newVert.m_vecPosition = vertVvd->m_vecPosition;
 								newVert.m_vecTexCoord = vertVvd->m_vecTexCoord;
@@ -192,7 +200,31 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 								if (!vertexOverflow)
 									newVert.m_vecPositionPacked = PackPos_UINT64(vertVvd->m_vecPosition, vertexOverflow);
 
-								newVert.parentMeshIndex = l; // set the mesh index for later usage
+								// check header flags so we don't pull color or uv2 when we don't want it
+								if (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)
+								{
+									Vector2* uvlayer = vvc->uv(i);
+
+									newVert.m_vecTexCoord2.x = uvlayer->x;
+									newVert.m_vecTexCoord2.y = uvlayer->y;
+								}
+
+								if (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
+								{
+									VertexColor_t* color = vvc->color(i);
+
+									newVert.m_color.r = color->r;
+									newVert.m_color.g = color->g;
+									newVert.m_color.b = color->b;
+									newVert.m_color.a = color->a;
+								}
+
+								// skip our weights if we don't have flags for it
+								if (!(newMesh.flags & VERTEX_HAS_WEIGHTS))
+								{
+									vertices.push_back(newVert);
+									continue;
+								}
 
 								for (int n = 0; n < vertVvd->m_BoneWeights.numbones; n++)
 								{
@@ -306,25 +338,6 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 								legacyWeights.push_back(newLegacyWeight);
 
-								// check header flags so we don't pull color or uv2 when we don't want it
-								if (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)
-								{
-									Vector2* uvlayer = vvc->uv(i);
-
-									newVert.m_vecTexCoord2.x = uvlayer->x;
-									newVert.m_vecTexCoord2.y = uvlayer->y;
-								}
-
-								if (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
-								{
-									VertexColor_t* color = vvc->color(i);
-
-									newVert.m_color.r = color->r;
-									newVert.m_color.g = color->g;
-									newVert.m_color.b = color->b;
-									newVert.m_color.a = color->a;
-								}
-
 								vertices.push_back(newVert);
 							}
 						}
@@ -360,7 +373,11 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 						newMesh.vertCacheSize += sizeof(VertexColor_t);
 					}
 
-					newMesh.vertCacheSize += sizeof(mstudiopackedboneweight_t) + sizeof(uint32_t) + sizeof(Vector2); // packed weight size, packed normal size, uv size
+					// override previous value if needed
+					if (!(newMesh.flags & VERTEX_HAS_WEIGHTS))
+						newMesh.numLegacyWeights = 0;
+
+					newMesh.vertCacheSize += sizeof(uint32_t) + sizeof(Vector2); // packed weight size, packed normal size, uv size
 
 					newMesh.vertOffset *= newMesh.vertCacheSize;
 
@@ -422,7 +439,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 	header.numMeshes = meshes.size();
 	header.numIndices = indices.size();
-	header.vertDataSize = vertices.size() * vertCacheSize;
+	//header.vertDataSize = vertices.size() * vertCacheSize;
 	header.numLODs = lods.size();
 	header.numStrips = strips.size();
 	header.externalWeightsSize = externalWeights.size() * sizeof(mstudioexternalweight_t);
@@ -467,6 +484,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 	}
 
 	header.vertDataSize = io.tell() - header.vertOffset;
+
 	header.externalWeightOffset = io.tell();
 	io.getWriter()->write((char*)externalWeights.data(), externalWeights.size() * sizeof(mstudioexternalweight_t));
 

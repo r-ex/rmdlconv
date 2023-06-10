@@ -21,6 +21,33 @@ struct Vector3
 	{
 		return { fabs(x), fabs(y), fabs(z) };
 	}
+
+	void operator-=(Vector3 a)
+	{
+		x -= a.x;
+		y -= a.y;
+		z -= a.z;
+	}
+
+	Vector3 operator*(Vector3& a)
+	{
+		return { x * a.x, y * a.y, z * a.z };
+	}
+
+	Vector3 operator*(float a)
+	{
+		return { x * a, y * a, z * a };
+	}
+
+	inline float& operator[](int i)
+	{
+		return ((float*)this)[i];
+	}
+
+	inline float operator[](int i) const
+	{
+		return ((float*)this)[i];
+	}
 };
 
 struct Vector4

@@ -32,21 +32,17 @@ const char* pszRSeqVersionHelpString = {
 	"> "
 };
 
-
-int main(int argc, char** argv)
+// move on from this
+void LegacyConversionHandling(CommandLine& cmdline)
 {
-	
-	printf("rmdlconv - Copyright (c) %s, rexx\n", &__DATE__[7]);
+	// using command args
+	if (cmdline.argc > 2)
+		return;
 
-	CommandLine cmdline(argc, argv);
+	if (!FILE_EXISTS(cmdline.argv[1]))
+		Error("couldn't find input file\n");
 
-    if (argc < 2)
-        Error("invalid usage\n");
-
-    if (!FILE_EXISTS(argv[1]))
-        Error("couldn't find input file\n");
-
-	std::string mdlPath(argv[1]);
+	std::string mdlPath(cmdline.argv[1]);
 
 	BinaryIO mdlIn;
 	mdlIn.open(mdlPath, BinaryIOMode::Read);
@@ -67,7 +63,7 @@ int main(int argc, char** argv)
 
 			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
 
-			ConvertMDLData_48(mdlBuf, mdlPath);
+			ConvertMDL48To54(mdlBuf, mdlPath, mdlPath);
 
 			delete[] mdlBuf;
 
@@ -83,7 +79,7 @@ int main(int argc, char** argv)
 
 			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
 
-			ConvertMDLData_49(mdlBuf, mdlPath);
+			ConvertMDL49To54(mdlBuf, mdlPath, mdlPath);
 
 			delete[] mdlBuf;
 
@@ -99,7 +95,7 @@ int main(int argc, char** argv)
 
 			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
 
-			ConvertMDLDataFrom52To53(mdlBuf, mdlPath);
+			ConvertMDL52To53(mdlBuf, mdlPath, mdlPath);
 
 			delete[] mdlBuf;
 
@@ -115,7 +111,7 @@ int main(int argc, char** argv)
 
 			mdlIn.getReader()->read(mdlBuf, mdlFileSize);
 
-			ConvertMDLData_53(mdlBuf, mdlPath);
+			ConvertMDL53To54(mdlBuf, mdlPath, mdlPath);
 
 			delete[] mdlBuf;
 
@@ -162,7 +158,19 @@ int main(int argc, char** argv)
 			}
 			else if (version == "8")
 			{
-				CreateVGFile_v8(mdlPath);
+				intmax_t mdlFileSize = GetFileSize(mdlPath);
+
+				mdlIn.seek(0, std::ios::beg);
+
+				char* mdlBuf = new char[mdlFileSize];
+
+				mdlIn.getReader()->read(mdlBuf, mdlFileSize);
+
+				ConvertRMDL8To10(mdlBuf, mdlPath, mdlPath);
+
+				delete[] mdlBuf;
+
+				break;
 			}
 			else
 			{
@@ -233,7 +241,40 @@ int main(int argc, char** argv)
 	{
 		Error("invalid input file. must be a valid .(r)mdl file with magic 'IDST'\n");
 	}
+}
 
+int main(int argc, char** argv)
+{
+
+	printf("rmdlconv - Copyright (c) %s, rexx\n", &__DATE__[7]);
+
+	CommandLine cmdline(argc, argv);
+
+    if (argc < 2)
+        Error("invalid usage\n");
+
+	if (cmdline.HasParam("-convertmodel"))
+	{
+		if (!cmdline.HasParam("-targetversion"))
+			Error("no '-targetversion' param found while trying to convert model(s)!!!\n required for proper conversion, exiting...\n");
+
+		std::string modelPath = cmdline.GetParamValue("-convertmodel");
+		int modelVersionTarget = atoi(cmdline.GetParamValue("-targetversion"));
+
+		const char* customDir = nullptr; // custom base folder for models
+
+		if (cmdline.HasParam("-outputdir"))
+			customDir = cmdline.GetParamValue("-outputdir");
+
+		UpgradeStudioModel(modelPath, modelVersionTarget, customDir);
+	}
+
+	if (cmdline.HasParam("-convertsequence"))
+	{
+		// todo
+	}
+
+	LegacyConversionHandling(cmdline); // this should be cut eventually
 
 	if(!cmdline.HasParam("-nopause"))
 		std::system("pause");

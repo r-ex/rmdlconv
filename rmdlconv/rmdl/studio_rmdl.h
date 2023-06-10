@@ -7,6 +7,8 @@
 
 #define MAX_NUM_LODS 8
 
+#define IDSTUDIOHEADER				(('T'<<24)+('S'<<16)+('D'<<8)+'I') // little-endian "IDST"
+
 // studiohdr flags
 #define STUDIOHDR_FLAGS_COMPLEX_WEIGHTS		0x4000 // don't really know what to name this one
 #define STUDIOHDR_FLAGS_USES_VERTEX_COLOR	0x1000000 // model has/uses vertex color
@@ -17,9 +19,16 @@
 #define VERTEX_HAS_POSITION_PACKED  0x2
 #define VERTEX_HAS_COLOR			0x10
 #define VERTEX_HAS_WEIGHTS			0x1000
-#define VERTEX_HAS_WEIGHTS_TYPE1	0x2000
-#define VERTEX_HAS_WEIGHTS_TYPE2	0x4000 // presumably this is 'packed' weights
+#define VERTEX_HAS_WEIGHTS_UNK		0x2000 // never seen this used and haven't found code that describes it well
+#define VERTEX_HAS_WEIGHTS_PACKED	0x4000 // presumably this is 'packed' weights
 #define VERTEX_HAS_UV2				0x200000000
+
+struct studiohdr_short_t
+{
+	int id;
+	int version;
+	int checksum;
+};
 
 // added in r1, used in v52, v53, and v54
 struct mstudio_meshvertexloddata_t

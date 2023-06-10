@@ -452,15 +452,19 @@ void ConvertPerTriAABBFrom52To53(r1::mstudioaabbheader_t* pOldPerTri, char* pOld
 
 #define FILEBUFSIZE (32 * 1024 * 1024)
 
-void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
+void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& pathOut)
 {
+	std::string rawModelName = std::filesystem::path(pathIn).filename().u8string();
+
+	printf("Converting model '%s' from version 52 to version 53...\n", rawModelName.c_str());
+
 	TIME_SCOPE(__FUNCTION__);
 
-	rmem input(buf);
+	rmem input(pMDL);
 
 	r1::studiohdr_t* oldHeader = input.get<r1::studiohdr_t>();
 
-	std::string outPath = ChangeExtension(filePath, "mdl_new");
+	std::string outPath = ChangeExtension(pathOut, "mdl_new");
 	std::ofstream out(outPath, std::ios::out | std::ios::binary);
 
 	// allocate temp file buffer
@@ -477,11 +481,11 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	//-| begin phy reading  |-----
 	std::unique_ptr<char[]> phyBuf;
-	if (FILE_EXISTS(ChangeExtension(filePath, "phy")))
+	if (FILE_EXISTS(ChangeExtension(pathIn, "phy")))
 	{
 		printf("model has 'phy' file...\n");
 
-		std::string phyPath = ChangeExtension(filePath, "phy");
+		std::string phyPath = ChangeExtension(pathIn, "phy");
 
 		size_t phySize = GetFileSize(phyPath);
 		phyBuf = std::unique_ptr<char[]>(new char[phySize]);
@@ -496,11 +500,11 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	//-| begin vtx reading  |-----
 	std::unique_ptr<char[]> vtxBuf;
-	if (FILE_EXISTS(ChangeExtension(filePath, "dx11.vtx")))
+	if (FILE_EXISTS(ChangeExtension(pathIn, "dx11.vtx")))
 	{
 		printf("model has 'vtx' file...\n");
 
-		std::string vtxPath = ChangeExtension(filePath, "dx11.vtx");
+		std::string vtxPath = ChangeExtension(pathIn, "dx11.vtx");
 
 		size_t vtxSize = GetFileSize(vtxPath);
 		vtxBuf = std::unique_ptr<char[]>(new char[vtxSize]);
@@ -515,11 +519,11 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	//-| begin vvd reading |-----
 	std::unique_ptr<char[]> vvdBuf;
-	if (FILE_EXISTS(ChangeExtension(filePath, "vvd")))
+	if (FILE_EXISTS(ChangeExtension(pathIn, "vvd")))
 	{
 		printf("model has 'vvd' file...\n");
 
-		std::string vvdPath = ChangeExtension(filePath, "vvd");
+		std::string vvdPath = ChangeExtension(pathIn, "vvd");
 
 		size_t vvdSize = GetFileSize(vvdPath);
 		vvdBuf = std::unique_ptr<char[]>(new char[vvdSize]);
@@ -534,11 +538,11 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	//-| begin vvc reading |-----
 	std::unique_ptr<char[]> vvcBuf;
-	if (FILE_EXISTS(ChangeExtension(filePath, "vvc")))
+	if (FILE_EXISTS(ChangeExtension(pathIn, "vvc")))
 	{
 		printf("model has 'vvc' file...\n");
 
-		std::string vvcPath = ChangeExtension(filePath, "vvc");
+		std::string vvcPath = ChangeExtension(pathIn, "vvc");
 
 		size_t vvcSize = GetFileSize(vvcPath);
 		vvcBuf = std::unique_ptr<char[]>(new char[vvcSize]);
@@ -551,8 +555,6 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 	}
 	//-| end vvc reading
 
-	printf("1");
-
 	// eventually we will need to load ani files
 
 	// init string table so we can use 
@@ -564,9 +566,7 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, oldHeader->pszUnkString()); // "Titan" or empty
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
-
-	printf("2");
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
 
 	// source file for lulz
 	input.seek(oldHeader->sourceFilenameOffset, rseekdir::beg);
@@ -576,8 +576,6 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	g_model.pData += oldHeader->boneindex - oldHeader->sourceFilenameOffset;
 	ALIGN4(g_model.pData);
-
-	printf("3");
 
 	// convert bones and jigglebones
 	input.seek(oldHeader->boneindex, rseekdir::beg);
@@ -713,5 +711,7 @@ void ConvertMDLDataFrom52To53(char* buf, const std::string& filePath)
 
 	delete[] g_model.pBase;
 
-	printf("Done!\n");
+	g_model.stringTable.clear(); // cleanup string table
+
+	printf("Finished converting model '%s', proceeding...\n\n", rawModelName.c_str());
 }

@@ -553,18 +553,22 @@ void ConvertAnims_48()
 // ConvertMDLData_48
 // Purpose: converts mdl data from mdl v49 (Portal 2) to rmdl v9 (Apex Legends Season 2/3)
 //
-void ConvertMDLData_48(char* buf, const std::string& filePath)
+void ConvertMDL48To54(char* pMDL, const std::string& pathIn, const std::string& pathOut)
 {
+	std::string rawModelName = std::filesystem::path(pathIn).filename().u8string();
+
+	printf("Converting model '%s' from version 48 to version 54 (subversion 10)...\n", rawModelName.c_str());
+
 	TIME_SCOPE(__FUNCTION__);
 
-	rmem input(buf);
+	rmem input(pMDL);
 
 	studiohdr_t* oldHeader = input.get<studiohdr_t>();
 
 	//-| begin vtx reading  |-----
 	std::unique_ptr<char[]> vtxBuf;
 	{
-		std::string vtxPath = ChangeExtension(filePath, "dx90.vtx");
+		std::string vtxPath = ChangeExtension(pathIn, "dx90.vtx");
 		if (!FILE_EXISTS(vtxPath))
 			Error("couldn't find .vtx file '%s'\n", vtxPath.c_str());
 
@@ -580,7 +584,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 	//-| begin vvd reading |-----
 	std::unique_ptr<char[]> vvdBuf;
 	{
-		std::string vvdPath = ChangeExtension(filePath, "vvd");
+		std::string vvdPath = ChangeExtension(pathIn, "vvd");
 		if (!FILE_EXISTS(vvdPath))
 			Error("couldn't find .vvd file '%s'\n", vvdPath.c_str());
 
@@ -593,7 +597,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 	}
 	//-| end vvd reading
 
-	std::string rmdlPath = ChangeExtension(filePath, "rmdl");
+	std::string rmdlPath = ChangeExtension(pathOut, "rmdl");
 	std::ofstream out(rmdlPath, std::ios::out | std::ios::binary);
 
 	// allocate temp file buffer
@@ -623,7 +627,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 
 	memcpy_s(&pHdr->name, 64, modelName.c_str(), min(modelName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
 	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, ""); // "Titan" or empty
 
 	// convert bones and jigglebones
@@ -699,7 +703,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 	out.write(g_model.pBase, pHdr->length);
 
 	// now that rmdl is fully converted, convert vtx/vvd/vvc to VG
-	CreateVGFile(ChangeExtension(filePath, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), nullptr, nullptr);
+	CreateVGFile(ChangeExtension(pathOut, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), nullptr, nullptr);
 
 	// now delete rmdl buffer so we can write the rig
 	delete[] g_model.pBase;
@@ -718,6 +722,8 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 		rigName = rigName.substr(0, rigName.length() - 4);
 		rigName += ".rrig";
 	}
+
+	printf("Creating rig from model...\n");
 
 	std::string rrigPath = ChangeExtension(filePath, "rrig");
 	std::ofstream rigOut(rrigPath, std::ios::out | std::ios::binary);
@@ -777,5 +783,7 @@ void ConvertMDLData_48(char* buf, const std::string& filePath)
 	delete[] g_model.pBase;
 
 	*/
-	printf("Done!\n");
+	g_model.stringTable.clear(); // cleanup string table
+
+	printf("Finished converting model '%s', proceeding...\n\n", rawModelName.c_str());
 }

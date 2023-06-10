@@ -563,14 +563,18 @@ void ConvertAnims_53()
 #define FILEBUFSIZE (32 * 1024 * 1024)
 
 //
-// ConvertMDLData_53
+// ConvertMDL53To54
 // Purpose: converts mdl data from mdl v53 (Titanfall 2) to rmdl v9 (Apex Legends Season 2/3)
 //
-void ConvertMDLData_53(char* buf, const std::string& filePath)
+void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& pathOut)
 {
+	std::string rawModelName = std::filesystem::path(pathIn).filename().u8string();
+
+	printf("Converting model '%s' from version 53 to version 54 (subversion 10)...\n", rawModelName.c_str());
+
 	TIME_SCOPE(__FUNCTION__);
 
-	rmem input(buf);
+	rmem input(pMDL);
 
 	r2::studiohdr_t* oldHeader = input.get<r2::studiohdr_t>();
 
@@ -582,6 +586,11 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 		input.seek(oldHeader->vtxindex, rseekdir::beg);
 		input.read(vtxBuf.get(), oldHeader->vtxsize);
 	}
+	else
+	{
+		printf("Skipping model '%s' as it has no vertex data (animation models are not supported)...\n\n", rawModelName.c_str());
+		return;
+	}
 
 	std::unique_ptr<char[]> vvdBuf;
 	if (oldHeader->vvdsize > 0)
@@ -590,6 +599,11 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 		input.seek(oldHeader->vvdindex, rseekdir::beg);
 		input.read(vvdBuf.get(), oldHeader->vvdsize);
+	}
+	else
+	{
+		printf("Skipping model '%s' as it has no vertex data (animation models are not supported)...\n\n", rawModelName.c_str());
+		return;
 	}
 
 	std::unique_ptr<char[]> vphyBuf;
@@ -610,7 +624,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 		input.read(vvcBuf.get(), oldHeader->vvcsize);
 	}
 
-	std::string rmdlPath = ChangeExtension(filePath, "rmdl");
+	std::string rmdlPath = ChangeExtension(pathOut, "rmdl");
 	std::ofstream out(rmdlPath, std::ios::out | std::ios::binary);
 
 	// allocate temp file buffer
@@ -626,7 +640,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	// init string table so we can use 
 	BeginStringTable();
 
-	std::string originalModelName = STRING_FROM_IDX(buf, oldHeader->sznameindex);
+	std::string originalModelName = STRING_FROM_IDX(pMDL, oldHeader->sznameindex);
 
 	std::string modelName = originalModelName;
 
@@ -640,8 +654,8 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	memcpy_s(&pHdr->name, 64, modelName.c_str(), min(modelName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader->unkstringindex));
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(pMDL, oldHeader->unkstringindex));
 
 	// convert bones and jigglebones
 	input.seek(oldHeader->boneindex, rseekdir::beg);
@@ -716,7 +730,7 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	out.write(g_model.pBase, pHdr->length);
 
 	// now that rmdl is fully converted, convert vtx/vvd/vvc to VG
-	CreateVGFile(ChangeExtension(filePath, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), vvcBuf.get(), nullptr);
+	CreateVGFile(ChangeExtension(pathOut, "vg"), pHdr, vtxBuf.get(), vvdBuf.get(), vvcBuf.get(), nullptr);
 
 	// now delete rmdl buffer so we can write the rig
 	delete[] g_model.pBase;
@@ -735,7 +749,9 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 		rigName += ".rrig";
 	}
 
-	std::string rrigPath = ChangeExtension(filePath, "rrig");
+	printf("Creating rig from model...\n");
+
+	std::string rrigPath = ChangeExtension(pathOut, "rrig");
 	std::ofstream rigOut(rrigPath, std::ios::out | std::ios::binary);
 
 	g_model.pBase = new char[FILEBUFSIZE] {};
@@ -752,8 +768,8 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 
 	memcpy_s(&pHdr->name, 64, rigName.c_str(), min(rigName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, rigName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(buf, oldHeader->surfacepropindex));
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(buf, oldHeader->unkstringindex));
+	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(pMDL, oldHeader->unkstringindex));
 
 	// convert bones and jigglebones
 	input.seek(oldHeader->boneindex, rseekdir::beg);
@@ -791,5 +807,10 @@ void ConvertMDLData_53(char* buf, const std::string& filePath)
 	rigOut.write(g_model.pBase, pHdr->length);
 
 	delete[] g_model.pBase;
-	printf("Done!\n");
+	//printf("Done!\n");
+
+
+	g_model.stringTable.clear(); // cleanup string table
+
+	printf("Finished converting model '%s', proceeding...\n\n", rawModelName.c_str());
 }
