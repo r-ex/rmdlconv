@@ -515,7 +515,9 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 		else
 			io.getWriter()->write((char*)&vertex.m_vecPosition, sizeof(Vector3));
 
-		io.getWriter()->write((char*)&vertex.m_BoneWeightsPacked, sizeof(mstudiopackedboneweight_t));
+		if (localFlags & (VERTEX_HAS_WEIGHTS | VERTEX_HAS_WEIGHTS_PACKED))
+			io.getWriter()->write((char*)&vertex.m_BoneWeightsPacked, sizeof(mstudiopackedboneweight_t));
+
 		io.getWriter()->write((char*)&vertex.m_NormalTangentPacked, sizeof(uint32_t));
 
 		if (localFlags & VERTEX_HAS_COLOR)
