@@ -8,51 +8,95 @@
 
 uint32_t PackNormalTangent_UINT32(const Vector3& normal, const Vector4& tangent)
 {
-	// normal 1 and normal 2
-	int16_t normal1, normal2;
-	uint8_t sign = 0, droppedComponent = 0;
-	float s;
-
 	Vector3 absNml = normal.Abs();
 
-	if (absNml.x >= absNml.y && absNml.x >= absNml.z)
-		droppedComponent = 0;
-	else if (absNml.y >= absNml.x && absNml.y >= absNml.z)
-		droppedComponent = 1;
-	else
-		droppedComponent = 2;
+	uint8_t idx1 = 0;
 
-	switch (droppedComponent)
+	// dropped component. seems to be the most significant axis?
+	if (absNml.x >= absNml.y && absNml.x >= absNml.z)
+		idx1 = 0;
+	else if (absNml.y >= absNml.x && absNml.y >= absNml.z)
+		idx1 = 1;
+	else
+		idx1 = 2;
+
+	// index of the second and third components of the normal
+	// see 140455D12 and LegionPlus rmdlstructs.h UnpackNormal
+	int idx2 = (0x124u >> (2 * idx1 + 2)) & 3; // (2 * idx1 + 2) % 3
+	int idx3 = (0x124u >> (2 * idx1 + 4)) & 3; // (2 * idx1 + 4) % 3
+
+	// changed from (sign ? -255 : 255) because when -255 is used, the result in game appears very wrong
+	float s = 255 / absNml[idx1];
+	float val2 = (normal[idx2] * s) + 256.f;
+	float val3 = (normal[idx3] * s) + 256.f;
+
+
+	/*  --- cleaned up tangent unpacking from hlsl ---
+		r2.y = -1 / (1 + nml.z);
+	
+		if (nml.z < -0.999899983)
+		{
+			r2.yzw = float3(0, -1, 0);
+			r3.xyz = float3(-1, 0, 0);
+		}
+		else
+		{
+			r3.x = r2.y * (nml.x * nml.y);
+	
+			r3.z = r2.y * (nml.x * nml.x) + 1;
+			r4.x = r2.y * (nml.y * nml.y) + 1;
+	
+			r2.yzw = float3(r3.z, r3.x, -nml.x);
+			r3.xyz = float3(r3.x, r4.x, -nml.y);
+		}
+
+		r1.w = 0.00614192151 * (uint)r2.x; // 0.00614192151 * (_Value & 0x3FF)
+		sincos(r1.w, r2.x, r4.x);
+	
+		// tangent
+		r2.xyz = (r2.yzw * r4.xxx) + (r3.xyz * r2.xxx);
+		// binorm sign
+		r0.w = r0.w ? -1 : 1; 
+	*/
+
+	// seems to calculate a modified orthonormal basis?
+	// might be based on this: https://github.com/NVIDIA/Q2RTX/blob/9d987e755063f76ea86e426043313c2ba564c3b7/src/refresh/vkpt/shader/utils.glsl#L240-L255
+	// we need to calculate this here so we can get the components of the tangent
+	Vector3 a, b;
+	if (normal.z < -0.999899983)
 	{
-	case 0:
-		sign = absNml.x < 0 ? 1 : 0;
-		s = absNml.x / (sign ? -255 : 255);
-		normal2 = (int16_t)std::roundf((absNml.y / s) + 256.f);
-		normal1 = (int16_t)std::roundf((absNml.z / s) + 256.f);
-		break;
-	case 1:
-		sign = absNml.y < 0 ? 1 : 0;
-		s = absNml.y / (sign ? -255 : 255);
-		normal1 = (int16_t)std::roundf((absNml.x / s) + 256.f);
-		normal2 = (int16_t)std::roundf((absNml.z / s) + 256.f);
-		break;
-	case 2:
-		sign = absNml.z < 0 ? 1 : 0;
-		s = absNml.z / (sign ? -255 : 255);
-		normal2 = (int16_t)std::roundf((absNml.x / s) + 256.f);
-		normal1 = (int16_t)std::roundf((absNml.y / s) + 256.f);
-		break;
-	default:
-		break;
+		a = Vector3{ 0, -1, 0 };
+		b = Vector3{ -1, 0, 0 };
+	}
+	else
+	{
+		float v1 = -1 / (1 + normal.z);
+		float v2 = v1 * (normal.x * normal.y);
+		float v3 = v1 * (normal.x * normal.x) + 1;
+		float v4 = v1 * (normal.y * normal.y) + 1;
+
+		a = Vector3{ v3, v2, -normal.x };
+		b = Vector3{ v2, v4, -normal.y };
 	}
 
-	char binormSign = tangent.w < 1 ? 1 : 0;
+	// get angle that gives the x and y components of our tangent
+	float angle = atan2f(Dot(tangent.AsVector3(), b), Dot(tangent.AsVector3(), a));
+	
+	// add 360deg to the angle so it is always positive (can't store negative angles in 10 bits)
+	if (angle < 0)
+		angle += DEG2RAD(360);
+
+	angle /= 0.00614192151;
+
+	bool sign = normal[idx1] < 0; // sign on the dropped normal component
+	char binormSign = tangent.w < 1 ? 1 : 0; // sign on tangent w component
 
 	return (binormSign << 31)
-		| (droppedComponent << 29)
+		| (idx1 << 29)
 		| (sign << 28)
-		| (normal2 << 19)
-		| (normal1 << 10);
+		| (static_cast<unsigned short>(val2) << 19)
+		| (static_cast<unsigned short>(val3) << 10)
+		| (static_cast<unsigned short>(angle) & 0x3FF);
 }
 
 
@@ -231,7 +275,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 									if (n < 3 && !boneMap.count(vertVvd->m_BoneWeights.bone[n]))
 									{
 										boneMap.insert(std::pair<uint8_t, uint8_t>(vertVvd->m_BoneWeights.bone[n], boneMapIdx));
-										printf("added bone %i at idx %i\n", boneMap.find(vertVvd->m_BoneWeights.bone[n])->first, boneMap.find(vertVvd->m_BoneWeights.bone[n])->second);
+										//printf("added bone %i at idx %i\n", boneMap.find(vertVvd->m_BoneWeights.bone[n])->first, boneMap.find(vertVvd->m_BoneWeights.bone[n])->second);
 										boneMapIdx++;
 
 										BoneStates.push_back(boneMap.find(vertVvd->m_BoneWeights.bone[n])->first);
@@ -247,7 +291,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 										if (!boneMap.count(boneId))
 										{
 											boneMap.insert(std::pair<uint8_t, uint8_t>(boneId, boneMapIdx));
-											printf("added bone %i at idx %i\n", boneMap.find(boneId)->first, boneMap.find(boneId)->second);
+											//printf("added bone %i at idx %i\n", boneMap.find(boneId)->first, boneMap.find(boneId)->second);
 											boneMapIdx++;
 
 											BoneStates.push_back(boneMap.find(boneId)->first);

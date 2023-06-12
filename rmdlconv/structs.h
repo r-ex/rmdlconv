@@ -50,6 +50,11 @@ struct Vector3
 	}
 };
 
+inline float Dot(const Vector3& a, const Vector3& b)
+{
+	return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
 struct Vector4
 {
 	float x, y, z, w;

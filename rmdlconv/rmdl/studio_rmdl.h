@@ -878,7 +878,7 @@ namespace r5 // apex legends
 			int animindex;
 			bool external;
 		};
-#pragma push(pop)
+#pragma pack(pop)
 	}
 
 	namespace v122

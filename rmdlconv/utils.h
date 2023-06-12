@@ -6,6 +6,9 @@
 #include <iostream>
 #include <chrono>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #define FILE_EXISTS(path) std::filesystem::exists(path)
 
 #define IALIGN2( a ) ((a + 1) & ~ 1)
@@ -29,6 +32,9 @@
 
 #define max(a,b) ((a > b) ? a : b)
 #define min(a,b) ((a < b) ? a : b)
+
+// convert angles in degress to radians
+#define DEG2RAD(angle) ((angle * M_PI) / 180.f)
 
 static void Error(const char* fmt, ...)
 {
