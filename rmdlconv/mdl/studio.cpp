@@ -155,6 +155,7 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 	int boneMapIdx = 0;
 	short externalWeightIdx = 0;
 	int vtxVertOffset = 0;
+	size_t vertexByteOffset = 0;
 
 	for (int lodIdx = 0; lodIdx < vtx->numLODs; ++lodIdx)
 	{
@@ -200,8 +201,6 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 					}
 
 					bool vertexOverflow = false; // set to true if a position in one of the vertexes is too large to pack.
-
-					newMesh.vertOffset = numVertices;
 
 					for (int m = 0; m < mesh->numStripGroups; ++m)
 					{
@@ -423,7 +422,8 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 					newMesh.vertCacheSize += sizeof(uint32_t) + sizeof(Vector2); // packed weight size, packed normal size, uv size
 
-					newMesh.vertOffset *= newMesh.vertCacheSize;
+					newMesh.vertOffset = vertexByteOffset;
+					vertexByteOffset += (newMesh.numVerts * newMesh.vertCacheSize);
 
 					// current vertex offset into vvd
 					vtxVertOffset += rmdlMesh->vertexloddata.numLODVertexes[lodIdx];
