@@ -1,18 +1,9 @@
 #include "stdafx.h"
 #include "CommandLine.h"
 
-CommandLine::CommandLine(int nArgsCount, char** args)
+CommandLine::CommandLine(int argc, char** argv) :
+    argc(argc), argv(argv)
 {
-    if (!args)
-    {
-        char* tmp{};
-        this->argc = 0;
-        this->argv = &tmp;
-    }
-    else {
-        this->argc = nArgsCount;
-        this->argv = args;
-    }
 }
 
 CommandLine::~CommandLine()

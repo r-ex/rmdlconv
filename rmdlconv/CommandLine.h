@@ -6,7 +6,7 @@ public:
     int argc = 0;
     char** argv;
 
-    CommandLine(int nArgsCount, char** args);
+    CommandLine(int argc, char** argv);
     ~CommandLine();
 
     virtual int FindParam(char* psz) const;
