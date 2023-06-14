@@ -107,7 +107,7 @@ Vector64 PackPos_UINT64(Vector3 vec, bool& fieldOverflow)
 	// fix if bad, didn't want to calculate twice
 	int values[3]{ ((vec.x + 1024.0) / 0.0009765625), ((vec.y + 1024.0) / 0.0009765625), ((vec.z + 2048.0) / 0.0009765625) };
 
-	if (values[0] > 0x1FFFFF || values[1] > 0x1FFFFF || values[2] > 0x3FFFFF)
+	if (abs(values[0]) > 0x1FFFFF || abs(values[1]) > 0x1FFFFF || abs(values[2]) > 0x3FFFFF)
 	{
 		fieldOverflow = true;
 		return pos;
