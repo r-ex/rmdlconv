@@ -124,6 +124,26 @@ Vector64 PackPos_UINT64(Vector3 vec, bool& fieldOverflow)
 	return pos;
 }
 
+// calculates the size of a single vertex from mesh flags
+// must mask off 0x40 (flags & ~0x40)
+__int64 __fastcall CalculateVertexSizeFromFlags(unsigned __int64 flags)
+{
+	unsigned int i = 0;
+	char v3 = 0; // cl
+
+	unsigned __int64 v1 = flags >> 24;
+	for (i = ((-4 * flags) & 0xC)
+		+ ((flags >> 2) & 4)
+		+ ((flags >> 3) & 8)
+		+ ((0x960174006301300ui64 >> (((flags >> 6) & 0x3Cu) + 2)) & 0x3C)
+		+ ((0x2132100 >> (((flags >> 10) & 0x1C) + 2)) & 0xC); v1; i += (0x48A31A20 >> (3 * (v3 & 0xF))) & 0x1C)
+	{
+		v3 = v1;
+		v1 >>= 4;
+	}
+	return i;
+}
+
 void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* vtxBuf, char* vvdBuf, char* vvcBuf, char* vvwBuf)
 {
 	FileHeader_t* vtx = reinterpret_cast<FileHeader_t*>(vtxBuf);
