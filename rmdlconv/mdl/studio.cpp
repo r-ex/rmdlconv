@@ -245,22 +245,10 @@ void CreateVGFile(const std::string& filePath, r5::v8::studiohdr_t* pHdr, char* 
 
 								// check header flags so we don't pull color or uv2 when we don't want it
 								if (pHdr->flags & STUDIOHDR_FLAGS_USES_UV2)
-								{
-									Vector2* uvlayer = vvc->uv(i);
-
-									newVert.m_vecTexCoord2.x = uvlayer->x;
-									newVert.m_vecTexCoord2.y = uvlayer->y;
-								}
+									newVert.m_vecTexCoord2 = *vvc->uv(i);
 
 								if (pHdr->flags & STUDIOHDR_FLAGS_USES_VERTEX_COLOR)
-								{
-									VertexColor_t* color = vvc->color(i);
-
-									newVert.m_color.r = color->r;
-									newVert.m_color.g = color->g;
-									newVert.m_color.b = color->b;
-									newVert.m_color.a = color->a;
-								}
+									newVert.m_color = *vvc->color(i);
 
 								// skip our weights if we don't have flags for it
 								if (!(newMesh.flags & VERTEX_HAS_WEIGHTS))
