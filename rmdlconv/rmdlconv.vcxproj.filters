@@ -92,14 +92,14 @@
     <ClInclude Include="mdl\studio.h">
       <Filter>Header Files\mdl</Filter>
     </ClInclude>
-    <ClInclude Include="rmdl\studio_rmdl.h">
-      <Filter>Header Files\rmdl</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="mathlib.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mdl\optimize.h">
+      <Filter>Header Files\mdl</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

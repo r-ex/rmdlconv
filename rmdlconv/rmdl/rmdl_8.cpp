@@ -2,7 +2,6 @@
 // See LICENSE.txt for licensing information (GPL v3)
 
 #include "stdafx.h"
-#include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
 #include "versions.h"
 

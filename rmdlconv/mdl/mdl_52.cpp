@@ -2,7 +2,6 @@
 // See LICENSE.txt for licensing information (GPL v3)
 
 #include "stdafx.h"
-#include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
 #include "versions.h"
 
@@ -69,7 +68,7 @@ void ConvertStudioHdrFrom52To53(r2::studiohdr_t* out, r1::studiohdr_t* hdr)
 	out->constdirectionallightdot = hdr->constdirectionallightdot;
 	out->rootLOD = hdr->rootLOD;
 	out->numAllowedRootLODs = hdr->numAllowedRootLODs;
-	out->fadeDistance = hdr->fadeDistance;
+	out->defaultFadeDist = hdr->defaultFadeDist;
 	out->flVertAnimFixedPointScale = hdr->flVertAnimFixedPointScale;
 	//-| end misc vars
 
@@ -116,7 +115,7 @@ void ConvertBonesFrom52To53(r1::mstudiobone_t* pOldBones, int numBones)
 		newBone->contents = oldBone->contents;
 		newBone->surfacepropLookup = oldBone->surfacepropLookup;
 
-		newBone->unkindex = -1;
+		newBone->unkIndex = -1;
 
 		if (oldBone->proctype != 0)
 			proceduralBones.push_back(newBone);
@@ -226,7 +225,7 @@ void ConvertBodyPartsFrom52To53(mstudiobodyparts_t* pOldBodyParts, int numBodyPa
 {
 	printf("converting %i bodyparts...\n", numBodyParts);
 
-	g_model.hdrV54()->bodypartindex = g_model.pData - g_model.pBase;
+	g_model.hdrV53()->bodypartindex = g_model.pData - g_model.pBase;
 
 	mstudiobodyparts_t* bodypartStart = reinterpret_cast<mstudiobodyparts_t*>(g_model.pData);
 	for (int i = 0; i < numBodyParts; ++i)
@@ -426,14 +425,14 @@ void ConvertSkinsFromMDL(char* pOldSkinData, int numSkinRef, int numSkinFamilies
 	ALIGN4(g_model.pData);
 }
 
-void ConvertPerTriAABBFrom52To53(r1::mstudioaabbheader_t* pOldPerTri, char* pOldAABBTree, int numNodes, int numLeaves, int numVerts)
+void ConvertPerTriAABBFrom52To53(r1::mstudiopertrihdr_t* pOldPerTri, char* pOldAABBTree, int numNodes, int numLeaves, int numVerts)
 {
 	g_model.hdrV53()->m_nPerTriAABBIndex = g_model.pData - g_model.pBase;
 
 	printf("converting per triangle aabb with %i nodes, %i leaves, and %i verts...\n", numNodes, numLeaves, numVerts);
 
-	r1::mstudioaabbheader_t* newPerTri = reinterpret_cast<r1::mstudioaabbheader_t*>(g_model.pData);
-	g_model.pData += sizeof(r1::mstudioaabbheader_t);
+	r1::mstudiopertrihdr_t* newPerTri = reinterpret_cast<r1::mstudiopertrihdr_t*>(g_model.pData);
+	g_model.pData += sizeof(r1::mstudiopertrihdr_t);
 
 	newPerTri->version = pOldPerTri->version;
 	newPerTri->bbmin = pOldPerTri->bbmin;
@@ -442,7 +441,7 @@ void ConvertPerTriAABBFrom52To53(r1::mstudioaabbheader_t* pOldPerTri, char* pOld
 	if (newPerTri->version != 2)
 		return;
 
-	int aabbTreeSize = (sizeof(r1::mstudioaabbnode_t) * numNodes) + (sizeof(r1::mstudioaabbleaf_t) * numLeaves) + (sizeof(r1::mstudioaabbvert_t) * numVerts);
+	int aabbTreeSize = (0x14 * numNodes) + (0x70 * numLeaves) + (sizeof(r1::mstudiopertrivertex_t) * numVerts);
 
 	memcpy(g_model.pData, pOldAABBTree, aabbTreeSize);
 	g_model.pData += aabbTreeSize;
@@ -494,7 +493,7 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 		phyIn.read(phyBuf.get(), phySize);
 		phyIn.close();
 
-		g_model.hdrV53()->vphysize = phySize;
+		g_model.hdrV53()->phySize = phySize;
 	}
 	//-| end phy reading   |-----
 
@@ -513,7 +512,7 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 		vtxIn.read(vtxBuf.get(), vtxSize);
 		vtxIn.close();
 
-		g_model.hdrV53()->vtxsize = vtxSize;
+		g_model.hdrV53()->vtxSize = vtxSize;
 	}
 	//-| end vtx reading   |-----
 
@@ -532,7 +531,7 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 		vvdIn.read(vvdBuf.get(), vvdSize);
 		vvdIn.close();
 
-		g_model.hdrV53()->vvdsize = vvdSize;
+		g_model.hdrV53()->vvdSize = vvdSize;
 	}
 	//-| end vvd reading
 
@@ -551,7 +550,7 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 		vvcIn.read(vvcBuf.get(), vvcSize);
 		vvcIn.close();
 
-		g_model.hdrV53()->vvcsize = vvcSize;
+		g_model.hdrV53()->vvcSize = vvcSize;
 	}
 	//-| end vvc reading
 
@@ -565,7 +564,7 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 	printf(modelName.c_str());
 
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, oldHeader->pszUnkString()); // "Titan" or empty
+	AddToStringTable((char*)pHdr, &pHdr->unkStringOffset, oldHeader->pszUnkString()); // "Titan" or empty
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
 
 	// source file for lulz
@@ -619,7 +618,7 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 	g_model.hdrV53()->localposeparamindex = ConvertPoseParams((mstudioposeparamdesc_t*)input.getPtr(), oldHeader->numlocalposeparameters, false);
 
 	// should be after meshes
-	pHdr->ruimeshindex = g_model.pData - g_model.pBase;
+	pHdr->uiPanelOffset = g_model.pData - g_model.pBase;
 
 	input.seek(oldHeader->includemodelindex, rseekdir::beg);
 	ConvertIncludeModels((mstudiomodelgroup_t*)input.getPtr(), oldHeader->numincludemodels);
@@ -652,12 +651,12 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 
 	if (oldHeader->pStudioHdr2()->linearboneindex && oldHeader->numbones > 1)
 	{
-		mstudiolinearbone_t* pLinearBones = oldHeader->pStudioHdr2()->pLinearBones();
+		mstudiolinearbone_t* pLinearBones = reinterpret_cast<mstudiolinearbone_t*>(oldHeader->pStudioHdr2()->pLinearBones());
 		ConvertLinearBoneTableTo53(pLinearBones, (char*)pLinearBones + sizeof(mstudiolinearbone_t));
 	}
 
-	r1::mstudioaabbheader_t* pPerTriAABB = oldHeader->pStudioHdr2()->pPerTriAABB();
-	ConvertPerTriAABBFrom52To53(pPerTriAABB, (char*)pPerTriAABB + sizeof(r1::mstudioaabbheader_t), oldHeader->pStudioHdr2()->m_nPerTriAABBNodeCount, oldHeader->pStudioHdr2()->m_nPerTriAABBLeafCount, oldHeader->pStudioHdr2()->m_nPerTriAABBVertCount); // looooong
+	r1::mstudiopertrihdr_t* pPerTriAABB = oldHeader->pStudioHdr2()->pPerTriHdr();
+	ConvertPerTriAABBFrom52To53(pPerTriAABB, (char*)pPerTriAABB + sizeof(r1::mstudiopertrihdr_t), oldHeader->pStudioHdr2()->m_nPerTriAABBNodeCount, oldHeader->pStudioHdr2()->m_nPerTriAABBLeafCount, oldHeader->pStudioHdr2()->m_nPerTriAABBVertCount); // looooong
 
 	g_model.pData = WriteStringTable(g_model.pData);
 	ALIGN4(g_model.pData);
@@ -666,43 +665,43 @@ void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& 
 	{
 		printf("inserting phy...\n");
 
-		g_model.hdrV53()->vphyindex = g_model.pData - g_model.pBase;
-		memcpy(g_model.pData, phyBuf.get(), g_model.hdrV53()->vphysize);
+		g_model.hdrV53()->phyOffset = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, phyBuf.get(), g_model.hdrV53()->phySize);
 
-		g_model.pData += g_model.hdrV53()->vphysize;
+		g_model.pData += g_model.hdrV53()->phySize;
 	}
 
-	g_model.hdrV53()->unkmemberindex1 = g_model.pData - g_model.pBase;
-	g_model.hdrV53()->unkindex3 = g_model.pData - g_model.pBase;
+	g_model.hdrV53()->unkOffset = g_model.pData - g_model.pBase;
+	g_model.hdrV53()->boneFollowerOffset = g_model.pData - g_model.pBase;
 
 	if (vtxBuf)
 	{
 		printf("inserting vtx...\n");
 
-		g_model.hdrV53()->vtxindex = g_model.pData - g_model.pBase;
-		memcpy(g_model.pData, vtxBuf.get(), g_model.hdrV53()->vtxsize);
+		g_model.hdrV53()->vtxOffset = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, vtxBuf.get(), g_model.hdrV53()->vtxSize);
 
-		g_model.pData += g_model.hdrV53()->vtxsize;
+		g_model.pData += g_model.hdrV53()->vtxSize;
 	}
 
 	if (vvdBuf)
 	{
 		printf("inserting vvd...\n");
 
-		g_model.hdrV53()->vvdindex = g_model.pData - g_model.pBase;
-		memcpy(g_model.pData, vvdBuf.get(), g_model.hdrV53()->vvdsize);
+		g_model.hdrV53()->vvdOffset = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, vvdBuf.get(), g_model.hdrV53()->vvdSize);
 
-		g_model.pData += g_model.hdrV53()->vvdsize;
+		g_model.pData += g_model.hdrV53()->vvdSize;
 	}
 
 	if (vvcBuf)
 	{
 		printf("inserting vvc...\n");
 
-		g_model.hdrV53()->vvcindex = g_model.pData - g_model.pBase;
-		memcpy(g_model.pData, vvcBuf.get(), g_model.hdrV53()->vvcsize);
+		g_model.hdrV53()->vvcOffset = g_model.pData - g_model.pBase;
+		memcpy(g_model.pData, vvcBuf.get(), g_model.hdrV53()->vvcSize);
 
-		g_model.pData += g_model.hdrV53()->vvcsize;
+		g_model.pData += g_model.hdrV53()->vvcSize;
 	}
 
 	pHdr->length = g_model.pData - g_model.pBase;

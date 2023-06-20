@@ -2,7 +2,6 @@
 // See LICENSE.txt for licensing information (GPL v3)
 
 #include "stdafx.h"
-#include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
 #include "versions.h"
 
@@ -81,20 +80,20 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t* hdr)
 	out->constdirectionallightdot = hdr->constdirectionallightdot;
 	out->rootLOD = hdr->rootLOD;
 	out->numAllowedRootLODs = hdr->numAllowedRootLODs;
-	out->fadeDistance = hdr->fadeDistance;
+	out->defaultFadeDist = hdr->defaultFadeDist;
 	out->flVertAnimFixedPointScale = hdr->flVertAnimFixedPointScale;
 	//-| end misc vars
 
 	//-| begin for giggles
 	/*out->vtxindex = -1;
-	out->vvdindex = hdr->vtxsize;
-	out->vvcindex = hdr->vtxsize + hdr->vvdsize;
+	out->vvdindex = hdr->vtxSize;
+	out->vvcindex = hdr->vtxSize + hdr->vvdSize;
 	out->vphyindex = -123456;*/
 
-	out->vtxsize = hdr->vtxsize;
-	out->vvdsize = hdr->vvdsize;
-	out->vvcsize = hdr->vvcsize;
-	out->vphysize = hdr->vphysize;
+	out->vtxSize = hdr->vtxSize;
+	out->vvdSize = hdr->vvdSize;
+	out->vvcSize = hdr->vvcSize;
+	out->phySize = hdr->phySize;
 	//-| end for giggles
 }
 
@@ -120,7 +119,7 @@ void GenerateRigHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t* hdr)
 	out->constdirectionallightdot = hdr->constdirectionallightdot;
 	out->rootLOD = hdr->rootLOD;
 	out->numAllowedRootLODs = hdr->numAllowedRootLODs;
-	out->fadeDistance = hdr->fadeDistance;
+	out->defaultFadeDist = hdr->defaultFadeDist;
 }
 
 void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
@@ -239,8 +238,8 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 	if (linearprocbones.size() == 0)
 		return;
 
-	g_model.hdrV54()->numprocbones = linearprocbones.size();
-	g_model.hdrV54()->procbonetableindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->procBoneCount = linearprocbones.size();
+	g_model.hdrV54()->procBoneTableOffset = g_model.pData - g_model.pBase;
 
 	for (auto& it : linearprocbones)
 	{
@@ -248,7 +247,7 @@ void ConvertBones_53(r2::mstudiobone_t* pOldBones, int numBones, bool isRig)
 		g_model.pData += sizeof(uint8_t);
 	}
 
-	g_model.hdrV54()->linearprocboneindex = g_model.pData - g_model.pBase;
+	g_model.hdrV54()->linearProcBoneOffset = g_model.pData - g_model.pBase;
 
 	for (int i = 0; i < numBones; i++)
 	{
@@ -295,7 +294,7 @@ void ConvertHitboxes_53(mstudiohitboxset_t* pOldHitboxSets, int numHitboxSets)
 			memcpy(g_model.pData, oldHitbox, sizeof(r5::v8::mstudiobbox_t));
 
 			AddToStringTable((char*)newHitbox, &newHitbox->szhitboxnameindex, STRING_FROM_IDX(oldHitbox, oldHitbox->szhitboxnameindex));
-			AddToStringTable((char*)newHitbox, &newHitbox->keyvalueindex, STRING_FROM_IDX(oldHitbox, oldHitbox->keyvalueindex));
+			AddToStringTable((char*)newHitbox, &newHitbox->hitdataGroupOffset, STRING_FROM_IDX(oldHitbox, oldHitbox->keyvalueindex));
 
 			g_model.pData += sizeof(r5::v8::mstudiobbox_t);
 		}
@@ -451,7 +450,7 @@ void ConvertTextures_53(mstudiotexturedir_t* pCDTextures, int numCDTextures, r2:
 		AddToStringTable((char*)newTexture, &newTexture->sznameindex, textureName);
 
 		std::string texName = "material/" + std::string(textureName) + ".rpak";
-		newTexture->guid = HashString(texName.c_str());
+		newTexture->textureGuid = HashString(texName.c_str());
 
 		g_model.pData += sizeof(r5::v8::mstudiotexture_t);
 	}
@@ -579,12 +578,12 @@ void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& 
 	r2::studiohdr_t* oldHeader = input.get<r2::studiohdr_t>();
 
 	std::unique_ptr<char[]> vtxBuf;
-	if (oldHeader->vtxsize > 0)
+	if (oldHeader->vtxSize > 0)
 	{
-		vtxBuf = std::unique_ptr<char[]>(new char[oldHeader->vtxsize]);
+		vtxBuf = std::unique_ptr<char[]>(new char[oldHeader->vtxSize]);
 
-		input.seek(oldHeader->vtxindex, rseekdir::beg);
-		input.read(vtxBuf.get(), oldHeader->vtxsize);
+		input.seek(oldHeader->vtxOffset, rseekdir::beg);
+		input.read(vtxBuf.get(), oldHeader->vtxSize);
 	}
 	else
 	{
@@ -593,12 +592,12 @@ void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& 
 	}
 
 	std::unique_ptr<char[]> vvdBuf;
-	if (oldHeader->vvdsize > 0)
+	if (oldHeader->vvdSize > 0)
 	{
-		vvdBuf = std::unique_ptr<char[]>(new char[oldHeader->vvdsize]);
+		vvdBuf = std::unique_ptr<char[]>(new char[oldHeader->vvdSize]);
 
-		input.seek(oldHeader->vvdindex, rseekdir::beg);
-		input.read(vvdBuf.get(), oldHeader->vvdsize);
+		input.seek(oldHeader->vvdOffset, rseekdir::beg);
+		input.read(vvdBuf.get(), oldHeader->vvdSize);
 	}
 	else
 	{
@@ -607,21 +606,21 @@ void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& 
 	}
 
 	std::unique_ptr<char[]> vphyBuf;
-	if (oldHeader->vphysize > 0)
+	if (oldHeader->phySize > 0)
 	{
-		vphyBuf = std::unique_ptr<char[]>(new char[oldHeader->vphysize]);
+		vphyBuf = std::unique_ptr<char[]>(new char[oldHeader->phySize]);
 
-		input.seek(oldHeader->vphyindex, rseekdir::beg);
-		input.read(vphyBuf.get(), oldHeader->vphysize);
+		input.seek(oldHeader->phyOffset, rseekdir::beg);
+		input.read(vphyBuf.get(), oldHeader->phySize);
 	}
 
 	std::unique_ptr<char[]> vvcBuf;
-	if (oldHeader->vvcsize > 0)
+	if (oldHeader->vvcSize > 0)
 	{
-		vvcBuf = std::unique_ptr<char[]>(new char[oldHeader->vvcsize]);
+		vvcBuf = std::unique_ptr<char[]>(new char[oldHeader->vvcSize]);
 
-		input.seek(oldHeader->vvcindex, rseekdir::beg);
-		input.read(vvcBuf.get(), oldHeader->vvcsize);
+		input.seek(oldHeader->vvcOffset, rseekdir::beg);
+		input.read(vvcBuf.get(), oldHeader->vvcSize);
 	}
 
 	std::string rmdlPath = ChangeExtension(pathOut, "rmdl");
@@ -655,7 +654,7 @@ void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& 
 	memcpy_s(&pHdr->name, 64, modelName.c_str(), min(modelName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, modelName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(pMDL, oldHeader->unkstringindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkStringOffset, STRING_FROM_IDX(pMDL, oldHeader->unkStringOffset));
 
 	// convert bones and jigglebones
 	input.seek(oldHeader->boneindex, rseekdir::beg);
@@ -769,7 +768,7 @@ void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& 
 	memcpy_s(&pHdr->name, 64, rigName.c_str(), min(rigName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, rigName.c_str());
 	AddToStringTable((char*)pHdr, &pHdr->surfacepropindex, STRING_FROM_IDX(pMDL, oldHeader->surfacepropindex));
-	AddToStringTable((char*)pHdr, &pHdr->unkstringindex, STRING_FROM_IDX(pMDL, oldHeader->unkstringindex));
+	AddToStringTable((char*)pHdr, &pHdr->unkStringOffset, STRING_FROM_IDX(pMDL, oldHeader->unkStringOffset));
 
 	// convert bones and jigglebones
 	input.seek(oldHeader->boneindex, rseekdir::beg);

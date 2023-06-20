@@ -170,8 +170,8 @@
     <ClInclude Include="BinaryIO.h" />
     <ClInclude Include="CommandLine.h" />
     <ClInclude Include="mathlib.h" />
+    <ClInclude Include="mdl\optimize.h" />
     <ClInclude Include="mdl\studio.h" />
-    <ClInclude Include="rmdl\studio_rmdl.h" />
     <ClInclude Include="rmem.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="structs.h" />

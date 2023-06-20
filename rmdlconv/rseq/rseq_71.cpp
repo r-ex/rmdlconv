@@ -2,7 +2,6 @@
 // See LICENSE.txt for licensing information (GPL v3)
 
 #include "stdafx.h"
-#include "rmdl/studio_rmdl.h"
 #include "mdl/studio.h"
 #include "versions.h"
 
@@ -115,8 +114,8 @@ void ConvertRSEQFrom71To7(char* buf, char* externalbuf, const std::string& fileP
 	ConvertSequenceAnims((char*)oldSeqDesc, externalbuf, (char*)pSeq, (int*)input.getPtr(), pSeq->groupsize[0] * pSeq->groupsize[1], numBones);
 
 	//this goes last
-	input.seek(oldSeqDesc->unkindex, rseekdir::beg);
-	g_model.seqV7()->unkindex = ConvertSequenceUnknown((r5::v8::unkseqdata_t*)input.getPtr(), pSeq->unkcount);
+	input.seek(oldSeqDesc->unkOffset, rseekdir::beg);
+	g_model.seqV7()->unkOffset = ConvertSequenceUnknown((r5::unkseqdata_t*)input.getPtr(), pSeq->unkCount);
 
 	g_model.pData = WriteStringTable(g_model.pData);
 	ALIGN4(g_model.pData);

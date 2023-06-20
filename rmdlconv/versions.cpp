@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include <versions.h>
-#include <rmdl/studio_rmdl.h>
+#include <mdl/studio.h>
 
 // fetch all the valid models from a given path
 // todo: this should support sequences
@@ -70,7 +70,7 @@ std::string SetStudioModelOutput(const std::string& pathIn, const std::string& p
 
 __forceinline int GetStudioVersionFromBuffer(char* pMDL)
 {
-	studiohdr_short_t* pHdr = reinterpret_cast<studiohdr_short_t*>(pMDL);
+	studiohdrshort_t* pHdr = reinterpret_cast<studiohdrshort_t*>(pMDL);
 	return pHdr->id == IDSTUDIOHEADER ? pHdr->version : -1; // return -1 if invalid model
 }
 
