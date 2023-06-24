@@ -12,6 +12,22 @@ enum MdlVersion : int
 	APEXLEGENDS = 54
 };
 
+enum class eRMdlSubVersion : char
+{
+	VERSION_UNK = -1,
+	VERSION_8,
+	VERSION_9,
+	VERSION_10,
+	VERSION_11,
+	VERSION_12,
+	VERSION_12_1,
+	VERSION_12_2,
+	VERSION_13,
+	VERSION_14,
+	VERSION_15,
+	VERSION_16
+};
+
 // conversion to rmdl v10 (studio version 54)
 void ConvertMDL48To54(char* pMDL, const std::string& pathIn, const std::string& pathOut);
 void ConvertMDL49To54(char* pMDL, const std::string& pathIn, const std::string& pathOut);

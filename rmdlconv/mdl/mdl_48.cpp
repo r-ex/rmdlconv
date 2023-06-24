@@ -77,6 +77,8 @@ void ConvertStudioHdrFrom48To54(r5::v8::studiohdr_t* out, studiohdr_t* hdr)
 	out->vvcindex = hdr->vtxSize + hdr->vvdSize;
 	out->vphyindex = -123456;*/
 
+	out->phyOffset = -123456;
+
 	out->vtxSize  = 0;//hdr->vtxSize;
 	out->vvdSize  = 0;//hdr->vvdSize;
 	out->vvcSize  = 0;//hdr->vvcSize;

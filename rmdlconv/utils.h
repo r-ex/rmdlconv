@@ -110,6 +110,20 @@ static std::uint64_t __fastcall HashString(const char* pData)
 	}
 	return 0x633D5F1 * v2 + ((0xFB8C4D96501i64 * (std::uint64_t)(v4 & v10)) >> 24) - 0xAE502812AA7333i64 * (std::uint32_t)(v3 + v9 / 8);
 }
+template <typename T>
+static size_t BufferValueSearch(char* buf, size_t maxSize, const T& target)
+{
+	// loop thru all possible locations in the buffer
+	// excludes anything within sizeof(T)-1 of the end of the buffer,
+	// as there are no valid values for this type beyond that point
+	for (size_t i = 0; i < maxSize - (sizeof(T) - 1); ++i)
+	{
+		if (*reinterpret_cast<T*>(&buf[i]) == target)
+			return i;
+	}
+
+	return -1;
+}
 
 using namespace std::chrono;
 

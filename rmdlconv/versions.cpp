@@ -74,6 +74,22 @@ __forceinline int GetStudioVersionFromBuffer(char* pMDL)
 	return pHdr->id == IDSTUDIOHEADER ? pHdr->version : -1; // return -1 if invalid model
 }
 
+eRMdlSubVersion GetRMDLSubVersionFromBuffer(char* pMDL)
+{
+	// get offset of phyOffset in studiohdr
+	size_t phyOffsetOffset = BufferValueSearch(pMDL, 600, (int)-123456);
+
+	switch (phyOffsetOffset)
+	{
+	case 0x1C4:
+		return eRMdlSubVersion::VERSION_12_1;
+	case 0x1CC: // this can be anything of v8-v12.0 but v8 is most likely to be used in this tool
+		return eRMdlSubVersion::VERSION_8;
+	}
+
+	return eRMdlSubVersion::VERSION_UNK;
+}
+
 // upgrade model funcs, varies per target version. func will parse models existing version and choose a function accordingly.
 void UpgradeStudioModelTo53(std::string& modelPath, const char* outputDir)
 {
@@ -159,8 +175,13 @@ void UpgradeStudioModelTo54(std::string& modelPath, const char* outputDir)
 			ConvertMDL53To54(pMDL.get(), path, pathOut);
 			break;
 		case MdlVersion::APEXLEGENDS:
-			ConvertRMDL8To10(pMDL.get(), path, pathOut);
+		{
+			eRMdlSubVersion subVersion = GetRMDLSubVersionFromBuffer(pMDL.get());
+
+			if (subVersion == eRMdlSubVersion::VERSION_8)
+				ConvertRMDL8To10(pMDL.get(), path, pathOut);
 			break;
+		}
 		default:
 			printf("Model '%s' has an unsupported verion, skipping...\n", path.c_str());
 			break;

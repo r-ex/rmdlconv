@@ -89,6 +89,7 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r2::studiohdr_t* hdr)
 	out->vvdindex = hdr->vtxSize;
 	out->vvcindex = hdr->vtxSize + hdr->vvdSize;
 	out->vphyindex = -123456;*/
+	out->phyOffset = -123456;
 
 	out->vtxSize = hdr->vtxSize;
 	out->vvdSize = hdr->vvdSize;
