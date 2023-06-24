@@ -1646,13 +1646,6 @@ namespace r1
 		int unused[3];
 	};
 
-	struct mstudio_meshvertexloddata_t
-	{
-		int modelvertexdataUnusedPad; // likely has none of the funny stuff because unused
-
-		int numLODVertexes[MAX_NUM_LODS]; // depreciated starting with rmdl v14(?)
-	};
-
 	struct mstudiomesh_t
 	{
 		int material;
@@ -1677,7 +1670,7 @@ namespace r1
 
 		Vector center;
 
-		mstudio_meshvertexloddata_t vertexloddata;
+		mstudio_meshvertexdata_t vertexloddata;
 
 		int unused[8]; // remove as appropriate
 	};
@@ -2483,13 +2476,6 @@ namespace r2
 		int unused[8];
 	};
 
-	struct mstudio_meshvertexloddata_t
-	{
-		int modelvertexdataUnusedPad; // likely has none of the funny stuff because unused
-
-		int numLODVertexes[MAX_NUM_LODS]; // depreciated starting with rmdl v14(?)
-	};
-
 	// pack here for our silly little unknown pointer
 #pragma pack(push, 4)
 	struct mstudiomesh_t
@@ -2516,7 +2502,7 @@ namespace r2
 
 		Vector center;
 
-		mstudio_meshvertexloddata_t vertexloddata;
+		mstudio_meshvertexdata_t vertexloddata;
 
 		void* pUnknown; // unknown memory pointer, probably one of the older vertex pointers but moved
 
@@ -3299,13 +3285,6 @@ namespace r5
 			int unkCount;
 		};
 
-		struct mstudio_meshvertexloddata_t
-		{
-			int modelvertexdataUnusedPad; // likely has none of the funny stuff because unused
-
-			int numLODVertexes[MAX_NUM_LODS]; // depreciated starting with rmdl v14(?)
-		};
-
 		// pack here for our silly little unknown pointer
 #pragma pack(push, 4)
 		struct mstudiomesh_t
@@ -3332,7 +3311,7 @@ namespace r5
 
 			Vector center;
 
-			mstudio_meshvertexloddata_t vertexloddata;
+			mstudio_meshvertexdata_t vertexloddata;
 
 			void* pUnknown; // unknown memory pointer, probably one of the older vertex pointers but moved
 		};
@@ -3447,6 +3426,23 @@ namespace r5
 			unsigned __int64 textureGuid; // guid/hash of this material
 		};
 #pragma pack(pop)
+
+		struct mstudiocollmodel_t
+		{
+			int contentMasksIndex;
+			int surfacePropsIndex;
+			int surfaceNamesIndex;
+			int headerCount;
+		};
+
+		struct mstudiocollheader_t
+		{
+			int unk;
+			int bvhNodeIndex;
+			int vertIndex;
+			int bvhLeafIndex;
+			float unk_10[4];
+		};
 
 		struct studiohdr_t
 		{
@@ -3660,25 +3656,38 @@ namespace r5
 
 	namespace v121
 	{
+		struct mstudiocollheader_t
+		{
+			int unk;
+			int bvhNodeIndex;
+			int vertIndex;
+			int bvhLeafIndex;
+			int unkIndex; // new in 12.1
+			int unkNew; // new in 12.1
+
+			float unk_10[4];
+		};
+
 		// data source struct for subversion 12.1
 		struct studiohdr_t
 		{
-			int id;          // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
-			int version;     // Format version number, such as 48 (0x30,0x00,0x00,0x00)
-			int checksum;    // This has to be the same in the phy and vtx files to load!
+			int id; // Model format ID, such as "IDST" (0x49 0x44 0x53 0x54)
+			int version; // Format version number, such as 54 (0x36,0x00,0x00,0x00)
+			int checksum; // This has to be the same in the phy and vtx files to load!
 			int sznameindex; // This has been moved from studiohdr2 to the front of the main header.
-			char name[64];   // The internal name of the model, padding with null bytes.
-			int length;      // Data size of MDL file in bytes.
+			char name[64]; // The internal name of the model, padding with null chars.
+			// Typically "my_model.mdl" will have an internal name of "my_model"
+			int length; // Data size of MDL file in chars.
 
-			Vector3 eyeposition;	// ideal eye position
+			Vector eyeposition;	// ideal eye position
 
-			Vector3 illumposition;	// illumination center
+			Vector illumposition;	// illumination center
 
-			Vector3 hull_min;		// ideal movement hull size
-			Vector3 hull_max;
+			Vector hull_min;		// ideal movement hull size
+			Vector hull_max;
 
-			Vector3 view_bbmin;		// clipping bounding box
-			Vector3 view_bbmax;
+			Vector view_bbmin;		// clipping bounding box
+			Vector view_bbmax;
 
 			int flags;
 
@@ -3691,7 +3700,8 @@ namespace r5
 			int numhitboxsets;
 			int hitboxsetindex;
 
-			int numlocalanim;   // animations/poses
+			// seemingly unused now, as animations are per sequence
+			int numlocalanim; // animations/poses
 			int localanimindex; // animation descriptions
 
 			int numlocalseq; // sequences
@@ -3702,7 +3712,7 @@ namespace r5
 			// mstudiotexture_t
 			// short rpak path
 			// raw textures
-			int materialtypesindex;
+			int materialtypesindex; // index into an array of char sized material type enums for each material used by the model
 			int numtextures; // the material limit exceeds 128, probably 256.
 			int textureindex;
 
@@ -3718,6 +3728,7 @@ namespace r5
 
 			int numbodyparts;
 			int bodypartindex;
+			inline mstudiobodyparts_t* const pBodypart(int i) const { assert(i >= 0 && i < numbodyparts); return reinterpret_cast<mstudiobodyparts_t*>((char*)this + bodypartindex) + i; }
 
 			int numlocalattachments;
 			int localattachmentindex;
@@ -3726,16 +3737,15 @@ namespace r5
 			int localnodeindex;
 			int localnodenameindex;
 
-			// these are unknown since I don't know what they cut
-			int numunk_v121;
-			int unkindex_v121;
+			int unkNodeCount; // ???
+			int nodeDataOffsetsOffset; // index into an array of int sized offsets that read into the data for each node
 
 			int numikchains;
 			int ikchainindex;
 
-			// this is rui meshes
-			int numruimeshes;
-			int ruimeshindex;
+			// mesh panels for using rui on models, primarily for weapons
+			int uiPanelCount;
+			int uiPanelOffset;
 
 			int numlocalposeparameters;
 			int localposeparamindex;
@@ -3752,36 +3762,50 @@ namespace r5
 			int contents;
 
 			// unused for packed models
+			// technically still functional though I am unsure why you'd want to use it
 			int numincludemodels;
 			int includemodelindex;
 
-			int virtualModel;
+			int /* mutable void* */ virtualModel;
 
 			int bonetablebynameindex;
 
-			int numunk1_v121; // count is (lodCount / totalSubmeshCount)
-			int unkindex1_v121; // data matches the "unknown" data in s3 VG
+			// stuff moved from vg in v12.1
+			// TODO: rename to hw as vg is a shit name
+			int vgMeshCount; // total number of meshes, not including LODs. better names in general
+			int vgMeshOffset;
 
-			int boneremapindex;
-			int numboneremaps;
+			int boneStateOffset;
+			int boneStateCount;
 
-			int unk_v54_v121[4];
+			int unk_v54_v121; // related to vg likely. TODO: check if this is the missing vars: constdirectionallightdot, rootLOD, numAllowedRootLODs, unused
 
-			// section before bone remaps
-			int unkindex2_v121;
-			int numunk2_v121;
+			int vgSize;
 
-			// section before above section
-			int unkindex3_v121;
-			int numunk3_v121;
+			short vgUnk; // same as padding in vg header
+			short numVGLods; // same as lod count in vg header
 
-			float defaultFadeDist;
+			int vgUnknownCount; // same as unk1 in vg header
 
-			float gathersize; // what. from r5r struct
+			int vgHeaderOffset;
+			int vgHeaderCount;
 
-			int unk_v54[2];
+			int vgLODOffset;
+			int vgLODCount;
 
-			// asset bakery strings if it has any
+			float defaultFadeDist;	// set to -1 to never fade. set above 0 if you want it to fade out, distance is in feet.
+			// player/titan models seem to inherit this value from the first model loaded in menus.
+			// works oddly on entities, probably only meant for static props
+
+			float gatherSize;	// what. from r5r struct. no clue what this does, seemingly for early versions of apex bsp but stripped in release apex (season 0)
+			// bad name, frustum culling
+
+			float flVertAnimFixedPointScale; // to be verified
+			int surfacepropLookup; // saved in the file
+
+			// this is in most shipped models, probably part of their asset bakery.
+			// doesn't actually need to be written pretty sure, only four chars when not present.
+			// this is not completely true as some models simply have nothing, such as animation models.
 			int sourceFilenameOffset;
 
 			int numsrcbonetransform;
@@ -3791,34 +3815,45 @@ namespace r5
 
 			int linearboneindex;
 
-			int numboneflexdrivers; // unsure if that's what it is in apex
-			int boneflexdriverindex;
+			// unsure what this is for but it exists for jigglbones
+			int procBoneCount;
+			int procBoneTableOffset;
+			int linearProcBoneOffset;
 
-			int unk3_v54_a[2]; // I think this section was split vs old v54
+			// always "" or "Titan"
+			int unkStringOffset;
 
+			// this is now used for combined files in rpak, vtx, vvd, and vvc are all combined while vphy is separate.
 			// the indexes are added to the offset in the rpak mdl_ header.
 			// vphy isn't vphy, looks like a heavily modified vphy.
-			// something different about these now
-			int vtxindex; // VTX
-			int vvdindex; // VVD / IDSV
-			int vvcindex; // VVC / IDCV 
-			int vphyindex; // VPHY / IVPS
+			// as of s2/3 these are no unused except phy
+			int vtxOffset; // VTX
+			int vvdOffset; // VVD / IDSV
+			int vvcOffset; // VVC / IDCV 
+			int phyOffset; // VPHY / IVPS
 
-			int vtxsize;
-			int vvdsize;
-			int vvcsize;
-			int vphysize;
+			int vtxSize;
+			int vvdSize;
+			int vvcSize;
+			int phySize; // still used in models using vg
 
-			int unk3_v54_b; // second part of above
+			// mostly seen on '_animated' suffixed models
+			// manually declared bone followers are no longer stored in kvs under 'bone_followers', they are now stored in an array of ints with the bone index.
+			int boneFollowerCount;
+			int boneFollowerOffset;
 
-			int unkindex3; // index to chunk after string block
+			// BVH4 size (?)
+			Vector mins;
+			Vector maxs; // seem to be the same as hull size
 
-			Vector3 mins; // min/max for Something
-			Vector3 maxs; // seem to be the same as hull size
+			int bvhOffset; // bvh4 tree
 
-			int unkindex4; // chunk before unkindex2 sometimes
+			short unk4_v54[2]; // same as unk3_v54_v121, 2nd might be base for other offsets? these are related to bvh4 stuff. collision detail for bvh (?)
 
-			int unk4_v54[3];
+			// new in apex vertex weight file for verts that have more than three weights
+			// vvw is a 'fake' extension name, we do not know the proper name.
+			int vvwOffset; // index will come last after other vertex files
+			int vvwSize;
 		};
 
 		struct mstudioanimdesc_t
@@ -3928,6 +3963,7 @@ inline s_modeldata_t g_model;
 
 static void BeginStringTable()
 {
+	g_model.stringTable.clear();
 	g_model.stringTable.emplace_back(stringentry_t{ NULL, NULL, NULL, "", -1 });
 }
 

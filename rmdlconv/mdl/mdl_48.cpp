@@ -737,7 +737,7 @@ void ConvertMDL48To54(char* pMDL, const std::string& pathIn, const std::string& 
 	g_model.pData += sizeof(r5::v8::studiohdr_t);
 
 	// reset string table for rig
-	g_model.stringTable.clear();
+	BeginStringTable();
 
 	memcpy_s(&pHdr->name, 64, rigName.c_str(), min(rigName.length(), 64));
 	AddToStringTable((char*)pHdr, &pHdr->sznameindex, rigName.c_str());
