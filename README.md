@@ -24,14 +24,14 @@ unsupported but planned:
 
 
 ### supported commands
--"-nopause": automatically close console after running
--"-convertmodel": path to model(s) you wish to convert
+- "-nopause": automatically close console after running
+- "-convertmodel": path to model(s) you wish to convert
   examples: "-convertmodel C:\Among\us.mdl" "-convertmodel C:\Among"
--"-targetversion": version you would like models to be upgraded to
+- "-targetversion": version you would like models to be upgraded to
   examples: "-targetversion 53" "-targetversion 54"
--"-outputdir": custom directory for files to be output into
+- "-outputdir": custom directory for files to be output into
   examples: "-outputdir E:\SuS"
--"-convertsequence": unfinished
+- "-convertsequence": unfinished
 
 ### known issues
 animation conversion is not currently supported and there may be various issues when using models in game
