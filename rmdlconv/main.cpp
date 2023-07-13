@@ -136,6 +136,7 @@ void LegacyConversionHandling(CommandLine& cmdline)
 
 			if (version == "12.1") // handle 12.1 model conversions
 			{
+#if HAS_VERSION_12_1
 				// convert v12.1 vg to v9 vg
 				std::string vgFilePath = ChangeExtension(mdlPath, "vg");
 
@@ -155,6 +156,7 @@ void LegacyConversionHandling(CommandLine& cmdline)
 					else
 						delete[] vgInputBuf;
 				}
+#endif
 			}
 			else if (version == "8")
 			{

@@ -178,8 +178,19 @@ void UpgradeStudioModelTo54(std::string& modelPath, const char* outputDir)
 		{
 			eRMdlSubVersion subVersion = GetRMDLSubVersionFromBuffer(pMDL.get());
 
-			if (subVersion == eRMdlSubVersion::VERSION_8)
+			switch (subVersion)
+			{
+			case eRMdlSubVersion::VERSION_8:
 				ConvertRMDL8To10(pMDL.get(), path, pathOut);
+				break;
+			case eRMdlSubVersion::VERSION_12_1:
+#if HAS_VERSION_12_1
+				ConvertRMDL121To10(pMDL.get(), path, pathOut);
+				break;
+#else
+				Error("RMDL v12.1 is not currently supported for conversion.\n");
+#endif
+			}
 			break;
 		}
 		default:

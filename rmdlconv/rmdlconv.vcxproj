@@ -150,10 +150,6 @@
     <ClCompile Include="mdl\mdl_52.cpp" />
     <ClCompile Include="mdl\mdl_53.cpp" />
     <ClCompile Include="mdl\studio.cpp" />
-    <ClCompile Include="rmdl\rmdl_121.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>
-    </ClCompile>
     <ClCompile Include="rmdl\rmdl_8.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Use</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Use</PrecompiledHeader>

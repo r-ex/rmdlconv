@@ -34,11 +34,17 @@ void ConvertMDL49To54(char* pMDL, const std::string& pathIn, const std::string& 
 void ConvertMDL53To54(char* pMDL, const std::string& pathIn, const std::string& pathOut);
 void ConvertRMDL8To10(char* pMDL, const std::string& pathIn, const std::string& pathOut);
 
+#if HAS_VERSION_12_1
+void ConvertRMDL121To10(char* pMDL, const std::string& pathIn, const std::string& pathOut);
+#endif
+
 // conversion to mdl v53
 void ConvertMDL52To53(char* pMDL, const std::string& pathIn, const std::string& pathOut);
 
+#if HAS_VERSION_12_1
 // VG
 void ConvertVGData_12_1(char* inputBuf, const std::string& filePath);
+#endif
 
 // deprecated
 //void CreateVGFile_v8(const std::string& filePath);
