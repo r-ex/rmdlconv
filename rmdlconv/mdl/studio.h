@@ -3894,6 +3894,90 @@ namespace r5
 			bool external;
 		};
 #pragma pack(pop)
+
+		struct mstudiobone_t
+		{
+			int sznameindex;
+			inline char* const pszName() const { return ((char*)this + sznameindex); }
+
+			int parent; // parent bone
+			int bonecontroller[6]; // bone controller index, -1 == none
+
+			// default values
+			Vector pos; // base bone position
+			Quaternion quat;
+			RadianEuler rot; // base bone rotation
+			Vector scale; // base bone scale
+
+			matrix3x4_t poseToBone;
+			Quaternion qAlignment;
+
+			int flags;
+			int proctype;
+			int procindex; // procedural rule offset
+			int physicsbone; // index into physically simulated bone
+			// from what I can tell this is the section that is parented to this bone, and if this bone is not the parent of any sections, it goes up the bone chain to the nearest bone that does and uses that section index
+			int surfacepropidx; // index into string tablefor property name
+			inline char* const pszSurfaceProp() const { return ((char*)this + surfacepropidx); }
+
+			int contents; // See BSPFlags.h for the contents flags
+
+			int surfacepropLookup; // this index must be cached by the loader, not saved in the file
+			
+			byte unkid; // this is separate because it's set to 0xFF when unused (-1)
+
+			byte unk1[3]; // maybe this is 'unk'?
+		};
+
+		struct mstudiomodel_t
+		{
+			char name[64];
+
+			int unkindex2; // byte before string block
+
+			// it looks like they write the entire name
+			// then write over it with other values where needed
+			// why.
+			int type;
+
+			float boundingradius;
+
+			int nummeshes;
+			int meshindex;
+
+			// cache purposes
+			int numvertices; // number of unique vertices/normals/texcoords
+			int vertexindex; // vertex Vector
+			int tangentsindex; // tangents Vector
+
+			int numattachments;
+			int attachmentindex;
+
+			int colorindex; // vertex color
+			// offset by colorindex number of bytes into vvc vertex colors
+			int uv2index; // vertex second uv map
+			// offset by uv2index number of bytes into vvc secondary uv map
+		};
+
+		struct mstudiomesh_t
+		{
+			int material;
+
+			int modelindex;
+
+			int numvertices; // number of unique vertices/normals/texcoords
+			int vertexoffset; // vertex mstudiovertex_t
+
+			// a unique ordinal for this mesh
+			int meshid;
+
+			Vector center;
+
+			// deprecated in later versions?
+			mstudio_meshvertexdata_t vertexloddata;
+
+			char unk[8]; // these are suposed to be filled on load, however this isn't true??
+		};
 	}
 
 	namespace v122
