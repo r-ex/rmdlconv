@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="core\CommandLine.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\common.cpp">
+      <Filter>studio</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\studio.cpp">
+      <Filter>studio</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\versions.cpp">
+      <Filter>studio</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\seq\rseq_71.cpp">
+      <Filter>studio\seq</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\seq\rseq_v10.cpp">
+      <Filter>studio\seq</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\mdl_48.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\mdl_49.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\mdl_52.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\mdl_53.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\rmdl_8.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\rmdl_121.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\color32.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\mathlib.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\matrix3x4.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\vector.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\vector2d.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="core\math\vector4d.cpp">
+      <Filter>core\math</Filter>
+    </ClCompile>
+    <ClCompile Include="studio\model\rmdl_120.cpp">
+      <Filter>studio\model</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="core\BinaryIO.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\CommandLine.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\rmem.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\utils.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="studio\bone_setup.h">
+      <Filter>studio</Filter>
+    </ClInclude>
+    <ClInclude Include="studio\common.h">
+      <Filter>studio</Filter>
+    </ClInclude>
+    <ClInclude Include="studio\optimize.h">
+      <Filter>studio</Filter>
+    </ClInclude>
+    <ClInclude Include="studio\studio.h">
+      <Filter>studio</Filter>
+    </ClInclude>
+    <ClInclude Include="studio\versions.h">
+      <Filter>studio</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\color32.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\compressed_vector.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\float16.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\mathlib.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\matrix3x4.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\vector.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\vector2d.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+    <ClInclude Include="core\math\vector4d.h">
+      <Filter>core\math</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{83bd12a3-8409-4aca-8231-6459e6ce31f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="studio">
+      <UniqueIdentifier>{fef6a8f0-2635-4e8e-87aa-4525cfcd8be5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="studio\seq">
+      <UniqueIdentifier>{a4f7d9c9-602b-4f53-a46e-648e37e053bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="studio\model">
+      <UniqueIdentifier>{c0e7d135-2ac5-4736-8c2b-5560a93f320c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\math">
+      <UniqueIdentifier>{07acf1e8-b495-41b6-8c8c-4af694aace35}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
