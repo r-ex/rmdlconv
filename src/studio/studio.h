@@ -704,9 +704,7 @@ struct mstudioattachment_t
 
 	matrix3x4_t localmatrix; // attachment point
 
-	// [amos]: for season 6 and 7 models, this data doesn't seem to exist!
-	// todo: make a new struct for this and properly handle versions above!
-	//int	unused[8];
+	int	unused[8];
 };
 
 struct mstudiohitboxset_t

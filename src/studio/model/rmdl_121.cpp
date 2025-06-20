@@ -919,6 +919,29 @@ void ConvertAnims_121(const char* const oldData, const int numlocalseq)
 }
 
 
+static int CopyAttachmentsData(r5::v8::mstudioattachment_t* pOldAttachments, int numAttachments)
+{
+	int index = g_model.pData - g_model.pBase;
+
+	printf("converting %i attachments...\n", numAttachments);
+
+	for (int i = 0; i < numAttachments; ++i)
+	{
+		r5::v8::mstudioattachment_t* oldAttach = &pOldAttachments[i];
+
+		r5::v8::mstudioattachment_t* attach = reinterpret_cast<r5::v8::mstudioattachment_t*>(g_model.pData) + i;
+
+		AddToStringTable((char*)attach, &attach->sznameindex, STRING_FROM_IDX(oldAttach, oldAttach->sznameindex));
+		attach->flags = oldAttach->flags;
+		attach->localbone = oldAttach->localbone;
+		memcpy(&attach->localmatrix, &oldAttach->localmatrix, sizeof(oldAttach->localmatrix));
+	}
+	g_model.pData += numAttachments * sizeof(r5::v8::mstudioattachment_t);
+
+	return index;
+
+	ALIGN4(g_model.pData);
+}
 #define FILEBUFSIZE (32 * 1024 * 1024)
 
 //
@@ -988,7 +1011,7 @@ void ConvertRMDL121To10(char* pMDL, const std::string& pathIn, const std::string
 
 	// convert attachments
 	input.seek(oldHeader->localattachmentindex, rseekdir::beg);
-	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader->numlocalattachments);
+	g_model.hdrV54()->localattachmentindex = CopyAttachmentsData((r5::v8::mstudioattachment_t*)input.getPtr(), oldHeader->numlocalattachments);
 
 	// convert hitboxsets and hitboxes
 	input.seek(oldHeader->hitboxsetindex, rseekdir::beg);
