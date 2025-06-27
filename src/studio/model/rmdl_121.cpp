@@ -50,10 +50,10 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 
 		for (int j = 0; j < lodInput.meshCount; ++j)
 		{
-			size_t thisSubmeshOffset = thisLodOffset + offsetof(vg::rev2::ModelLODHeader_t, meshOffset) + lodInput.meshOffset + (j * sizeof(vg::rev3::MeshHeader_t));
+			size_t thisSubmeshOffset = thisLodOffset + offsetof(vg::rev2::ModelLODHeader_t, meshOffset) + lodInput.meshOffset + (j * sizeof(vg::rev2::MeshHeader_t));
 			input.seek(thisSubmeshOffset, rseekdir::beg);
 
-			vg::rev3::MeshHeader_t submesh = input.read<vg::rev3::MeshHeader_t>();
+			vg::rev2::MeshHeader_t submesh = input.read<vg::rev2::MeshHeader_t>();
 			vertexBufSize += submesh.vertBufferSize;
 			indexBufSize += submesh.indexCount * 2;
 			extendedWeightsBufSize += submesh.externalWeightSize;
@@ -97,12 +97,12 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 
 		for (int j = 0; j < lodInput.meshCount; ++j)
 		{
-			size_t thisSubmeshOffset = thisLodOffset + offsetof(vg::rev2::ModelLODHeader_t, meshOffset) + lodInput.meshOffset + (j * sizeof(vg::rev3::MeshHeader_t));
+			size_t thisSubmeshOffset = thisLodOffset + offsetof(vg::rev2::ModelLODHeader_t, meshOffset) + lodInput.meshOffset + (j * sizeof(vg::rev2::MeshHeader_t));
 			input.seek(thisSubmeshOffset, rseekdir::beg);
 
 			char* thisSubmeshPointer = reinterpret_cast<char*>(input.getPtr());
 
-			vg::rev3::MeshHeader_t submeshInput = input.read<vg::rev3::MeshHeader_t>();
+			vg::rev2::MeshHeader_t submeshInput = input.read<vg::rev2::MeshHeader_t>();
 
 			vg::rev1::MeshHeader_t submesh{};
 
@@ -122,23 +122,23 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 
 			submeshes.write(submesh);
 			
-			void* vtxPtr = (thisSubmeshPointer + offsetof(vg::rev3::MeshHeader_t, vertOffset) + submeshInput.vertOffset);
+			void* vtxPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, vertOffset) + submeshInput.vertOffset);
 			std::memcpy(vertexBuf.get() + vertexBufSize, vtxPtr, submeshInput.vertBufferSize);
 			vertexBufSize += submeshInput.vertBufferSize;
 
-			void* indexPtr = (thisSubmeshPointer + offsetof(vg::rev3::MeshHeader_t, indexOffset) + submeshInput.indexOffset);
+			void* indexPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, indexOffset) + submeshInput.indexOffset);
 			std::memcpy(indexBuf.get() + indexBufSize, indexPtr, submeshInput.indexCount * 2);
 			indexBufSize += submeshInput.indexCount * 2;
 
-			void* extendedWeightsPtr = (thisSubmeshPointer + offsetof(vg::rev3::MeshHeader_t, externalWeightOffset) + submeshInput.externalWeightOffset);
+			void* extendedWeightsPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, externalWeightOffset) + submeshInput.externalWeightOffset);
 			std::memcpy(extendedWeightsBuf.get() + extendedWeightsBufSize, extendedWeightsPtr, submeshInput.externalWeightSize);
 			extendedWeightsBufSize += submeshInput.externalWeightSize;
 
-			void* externalWeightsPtr = (thisSubmeshPointer + offsetof(vg::rev3::MeshHeader_t, legacyWeightOffset) + submeshInput.legacyWeightOffset);
+			void* externalWeightsPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, legacyWeightOffset) + submeshInput.legacyWeightOffset);
 			std::memcpy(externalWeightsBuf.get() + externalWeightsBufSize, externalWeightsPtr, submeshInput.legacyWeightCount * 0x10);
 			externalWeightsBufSize += submeshInput.legacyWeightCount * 0x10;
 
-			void* stripsPtr = (thisSubmeshPointer + offsetof(vg::rev3::MeshHeader_t, stripOffset) + submeshInput.stripOffset);
+			void* stripsPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, stripOffset) + submeshInput.stripOffset);
 			std::memcpy(stripsBuf.get() + stripsBufSize, stripsPtr, submeshInput.stripCount * sizeof(OptimizedModel::StripHeader_t));
 			stripsBufSize += submeshInput.stripCount * sizeof(OptimizedModel::StripHeader_t);
 		}
@@ -151,18 +151,18 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 
 	char* unkDataBuf = nullptr;
 
-	if (std::filesystem::exists(rmdlPath) && GetFileSize(rmdlPath) > sizeof(r5::v140::studiohdr_t))
+	if (std::filesystem::exists(rmdlPath) && GetFileSize(rmdlPath) > sizeof(r5::v121::studiohdr_t))
 	{
 		// grab bone remaps from rmdl
 		std::ifstream ifs(rmdlPath, std::ios::in | std::ios::binary);
 
-		r5::v140::studiohdr_t hdr;
+		r5::v121::studiohdr_t hdr;
 
 		ifs.read((char*)&hdr, sizeof(hdr));
 
 		if (hdr.boneStateCount > 0)
 		{
-			ifs.seekg(offsetof(r5::v140::studiohdr_t, boneStateOffset) + hdr.boneStateOffset, std::ios::beg);
+			ifs.seekg(offsetof(r5::v121::studiohdr_t, boneStateOffset) + hdr.boneStateOffset, std::ios::beg);
 
 			boneRemapCount = hdr.boneStateCount;
 
@@ -172,7 +172,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 
 		if (hdr.vgMeshCount > 0)
 		{
-			ifs.seekg(offsetof(r5::v140::studiohdr_t, vgMeshOffset) + hdr.vgMeshOffset, std::ios::beg);
+			ifs.seekg(offsetof(r5::v121::studiohdr_t, vgMeshOffset) + hdr.vgMeshOffset, std::ios::beg);
 
 			unkDataBuf = new char[hdr.vgMeshCount * 0x30];
 			ifs.read(unkDataBuf, hdr.vgMeshCount * 0x30);
@@ -251,7 +251,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 
 //
 // ConvertStudioHdr
-void ConvertStudioHdr(r5::v8::studiohdr_t* out, r5::v140::studiohdr_t* hdr)
+void ConvertStudioHdr(r5::v8::studiohdr_t* out, r5::v121::studiohdr_t* hdr)
 {
 	out->id = 'TSDI';
 	out->version = 54;
@@ -342,7 +342,7 @@ void ConvertStudioHdr(r5::v8::studiohdr_t* out, r5::v140::studiohdr_t* hdr)
 	//-| end for giggles
 }
 
-void GenerateRigHdr(r5::v8::studiohdr_t* out, r5::v140::studiohdr_t* hdr)
+void GenerateRigHdr(r5::v8::studiohdr_t* out, r5::v121::studiohdr_t* hdr)
 {
 	out->id = 'TSDI';
 	out->version = 54;
@@ -562,6 +562,7 @@ void ConvertBodyParts_121(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 
 		memcpy(g_model.pData, oldbodypart, sizeof(mstudiobodyparts_t));
 
+		printf("%s\n", STRING_FROM_IDX(oldbodypart, oldbodypart->sznameindex));
 		AddToStringTable((char*)newbodypart, &newbodypart->sznameindex, STRING_FROM_IDX(oldbodypart, oldbodypart->sznameindex));
 
 		g_model.pData += sizeof(mstudiobodyparts_t);
@@ -575,13 +576,13 @@ void ConvertBodyParts_121(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 		newbodypart->modelindex = g_model.pData - (char*)newbodypart;
 
 		// pointer to old models (in .mdl)
-		r5::v140::mstudiomodel_t* oldModels = reinterpret_cast<r5::v140::mstudiomodel_t*>((char*)oldbodypart + oldbodypart->modelindex);
+		r5::v121::mstudiomodel_t* oldModels = reinterpret_cast<r5::v121::mstudiomodel_t*>((char*)oldbodypart + oldbodypart->modelindex);
 
 		// pointer to start of new model data (in .rmdl)
 		r5::v8::mstudiomodel_t* newModels = reinterpret_cast<r5::v8::mstudiomodel_t*>(g_model.pData);
 		for (int j = 0; j < newbodypart->nummodels; ++j)
 		{
-			r5::v140::mstudiomodel_t* oldModel = oldModels + j;
+			r5::v121::mstudiomodel_t* oldModel = oldModels + j;
 			r5::v8::mstudiomodel_t* newModel = reinterpret_cast<r5::v8::mstudiomodel_t*>(g_model.pData);
 
 			memcpy(&newModel->name, &oldModel->name, sizeof(newModel->name));
@@ -603,7 +604,7 @@ void ConvertBodyParts_121(mstudiobodyparts_t* pOldBodyParts, int numBodyParts)
 
 		for (int j = 0; j < newbodypart->nummodels; ++j)
 		{
-			r5::v140::mstudiomodel_t* oldModel = oldModels + j;
+			r5::v121::mstudiomodel_t* oldModel = oldModels + j;
 			r5::v8::mstudiomodel_t* newModel = newModels + j;
 
 			newModel->meshindex = g_model.pData - (char*)newModel;
@@ -686,7 +687,7 @@ void ConvertIkChains_121(r5::v8::mstudioikchain_t* pOldIkChains, int numIkChains
 	ALIGN4(g_model.pData);
 }
 
-static void ConvertUIPanelMeshes(const r5::v140::studiohdr_t* const oldHeader, rmem& input)
+static void ConvertUIPanelMeshes(const r5::v121::studiohdr_t* const oldHeader, rmem& input)
 {
 	if (oldHeader->uiPanelCount == 0)
 		return;
@@ -958,7 +959,7 @@ void ConvertRMDL121To10(char* pMDL, const std::string& pathIn, const std::string
 
 	rmem input(pMDL);
 
-	r5::v140::studiohdr_t* oldHeader = input.get<r5::v140::studiohdr_t>();
+	r5::v121::studiohdr_t* oldHeader = input.get<r5::v121::studiohdr_t>();
 
 	std::string rmdlPath = ChangeExtension(pathOut, "rmdl_conv");
 	std::ofstream out(rmdlPath, std::ios::out | std::ios::binary);
@@ -1174,7 +1175,7 @@ void ConvertRMDL121To10(char* pMDL, const std::string& pathIn, const std::string
 
 	// convert attachments
 	input.seek(oldHeader->localattachmentindex, rseekdir::beg);
-	g_model.hdrV54()->localattachmentindex = ConvertAttachmentTo54((mstudioattachment_t*)input.getPtr(), oldHeader->numlocalattachments);
+	g_model.hdrV54()->localattachmentindex = CopyAttachmentsData((r5::v8::mstudioattachment_t*)input.getPtr(), oldHeader->numlocalattachments);
 
 	// convert hitboxsets and hitboxes
 	input.seek(oldHeader->hitboxsetindex, rseekdir::beg);

@@ -65,7 +65,7 @@ static void CopyCollisionBuffers(r5::v8::mstudiocollmodel_t* const newCollModel,
 	g_model.pData += surfaceNamesSize;
 }
 
-void ConvertCollisionData_V120(const r5::v140::studiohdr_t* const oldStudioHdr, const char* const pOldBVHData)
+void ConvertCollisionData_V120(const r5::v121::studiohdr_t* const oldStudioHdr, const char* const pOldBVHData)
 {
 	g_model.hdrV54()->bvhOffset = g_model.pData - g_model.pBase;
 
