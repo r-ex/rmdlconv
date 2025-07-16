@@ -491,6 +491,8 @@ void ConvertSkins_53(char* pOldSkinData, int numSkinRef, int numSkinFamilies)
 	memcpy(g_model.pData, pOldSkinData, skinIndexDataSize);
 	g_model.pData += skinIndexDataSize;
 
+	ALIGN4(g_model.pData);
+
 	// write skin names
 	// skin 0 is unnamed
 	for (int i = 0; i < numSkinFamilies-1; ++i)
