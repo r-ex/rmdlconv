@@ -5022,7 +5022,10 @@ static int ConvertSrcBoneTransforms(mstudiosrcbonetransform_t* pOldBoneTransform
 	ALIGN4(g_model.pData);
 }
 
-// specifically for v54
+// mult by two for: flags and parrents, rot and pos.
+constexpr int boneDataSize = ((sizeof(int) * 2) + (sizeof(Vector) * 2) + sizeof(Quaternion) + sizeof(matrix3x4_t));
+
+// mdl -> rmdl
 static void ConvertLinearBoneTableTo54(mstudiolinearbone_t* pOldLinearBone, char* pOldLinearBoneTable)
 {
 	printf("converting linear bone table...\n");
@@ -5041,21 +5044,22 @@ static void ConvertLinearBoneTableTo54(mstudiolinearbone_t* pOldLinearBone, char
 	newLinearBone->posetoboneindex = pOldLinearBone->posetoboneindex - 36;
 
 	// mult by two for: flags and parrents, rot and pos.
-	int tableSize = ((sizeof(int) * 2) + (sizeof(Vector) * 2) + sizeof(Quaternion) + sizeof(matrix3x4_t)) * newLinearBone->numbones;
+	int tableSize = boneDataSize * newLinearBone->numbones;
 
 	memcpy(g_model.pData, pOldLinearBoneTable, tableSize);
 	g_model.pData += tableSize;
 
 	ALIGN4(g_model.pData);
 }
+
+// rmdl -> rmdl
 static void CopyLinearBoneTableTo54(const r5::v8::mstudiolinearbone_t* const pOldLinearBone)
 {
 	printf("copying linear bone table...\n");
 
 	g_model.hdrV54()->linearboneindex = g_model.pData - g_model.pBase;
 
-	// mult by two for: flags and parrents, rot and pos.
-	const int dataSize = sizeof(r5::v8::mstudiolinearbone_t) + (((sizeof(int) * 2) + (sizeof(Vector) * 2) + sizeof(Quaternion) + sizeof(matrix3x4_t)) * pOldLinearBone->numbones);
+	const int dataSize = sizeof(r5::v8::mstudiolinearbone_t) + (boneDataSize * pOldLinearBone->numbones);
 
 	memcpy(g_model.pData, reinterpret_cast<const char* const>(pOldLinearBone), dataSize);
 	g_model.pData += dataSize;

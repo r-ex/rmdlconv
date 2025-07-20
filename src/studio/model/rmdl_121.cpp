@@ -432,11 +432,6 @@ void ConvertBones_121(r5::v121::mstudiobone_t* pOldBones, int numBones, bool isR
 
 		r5::v8::mstudiojigglebone_t* jBone = reinterpret_cast<r5::v8::mstudiojigglebone_t*>(g_model.pData);
 
-		if (oldJBone->flags & JIGGLE_IS_RIGID)
-		{
-			Error("Apex Legends does not support 'is_rigid' type jigglebones");
-		}
-
 		bone->procindex = (char*)jBone - (char*)bone;
 		jBone->flags = oldJBone->flags;
 		jBone->bone = boneid;
