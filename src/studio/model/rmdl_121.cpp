@@ -64,12 +64,12 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 		lodSubmeshCount += lodInput.meshCount;
 	}
 
-	std::unique_ptr<char[]> vertexBuf(new char[vertexBufSize]);
-	std::unique_ptr<char[]> indexBuf(new char[indexBufSize]);
-	std::unique_ptr<char[]> extendedWeightsBuf(new char[extendedWeightsBufSize]);
-	std::unique_ptr<char[]> externalWeightsBuf(new char[externalWeightsBufSize]);
-	std::unique_ptr<char[]> stripsBuf(new char[stripsBufSize]);
-	std::unique_ptr<char[]> meshBuf(new char[lodSubmeshCount * sizeof(vg::rev1::MeshHeader_t)]);
+	std::unique_ptr<char[]> vertexBuf = std::make_unique<char[]>(vertexBufSize);
+	std::unique_ptr<char[]> indexBuf = std::make_unique<char[]>(indexBufSize);
+	std::unique_ptr<char[]> extendedWeightsBuf = std::make_unique<char[]>(extendedWeightsBufSize);
+	std::unique_ptr<char[]> externalWeightsBuf = std::make_unique<char[]>(externalWeightsBufSize);
+	std::unique_ptr<char[]> stripsBuf = std::make_unique<char[]>(stripsBufSize);
+	std::unique_ptr<char[]> meshBuf = std::make_unique<char[]>(lodSubmeshCount * sizeof(vg::rev1::MeshHeader_t));
 
 	printf("VG: allocatedbuffers:\n");
 	printf(
@@ -107,18 +107,18 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 			vg::rev1::MeshHeader_t submesh{};
 
 			submesh.flags = submeshInput.flags;
-			submesh.vertCacheSize = (unsigned int)submeshInput.vertCacheSize;
-			submesh.vertCount = (unsigned int)submeshInput.vertCount;
-			submesh.indexCount = (unsigned int)submeshInput.indexCount;
-			submesh.extraBoneWeightSize = (unsigned int)submeshInput.externalWeightSize;
-			submesh.legacyWeightCount = (unsigned int)submeshInput.legacyWeightCount;
-			submesh.stripCount = (unsigned int)submeshInput.stripCount;
+			submesh.vertCacheSize = static_cast<uint32_t>(submeshInput.vertCacheSize);
+			submesh.vertCount = static_cast<uint32_t>(submeshInput.vertCount);
+			submesh.indexCount = static_cast<uint32_t>(submeshInput.indexCount);
+			submesh.extraBoneWeightSize = static_cast<uint32_t>(submeshInput.externalWeightSize);
+			submesh.legacyWeightCount = static_cast<uint32_t>(submeshInput.legacyWeightCount);
+			submesh.stripCount = static_cast<uint32_t>(submeshInput.stripCount);
 
-			submesh.vertOffset = (unsigned int)vertexBufSize;
-			submesh.indexOffset = (unsigned int)indexBufSize / sizeof(uint16_t);
-			submesh.extraBoneWeightSize = (unsigned int)extendedWeightsBufSize;
-			submesh.legacyWeightOffset = (unsigned int)externalWeightsBufSize;
-			submesh.stripOffset = (unsigned int)stripsBufSize / sizeof(OptimizedModel::StripHeader_t);
+			submesh.vertOffset = static_cast<uint32_t>(vertexBufSize);
+			submesh.indexOffset = static_cast<uint32_t>(indexBufSize) / sizeof(uint16_t);
+			submesh.extraBoneWeightOffset = static_cast<uint32_t>(extendedWeightsBufSize);
+			submesh.legacyWeightOffset = static_cast<uint32_t>(externalWeightsBufSize) / sizeof(vvd::mstudioboneweight_t);
+			submesh.stripOffset = static_cast<uint32_t>(stripsBufSize) / sizeof(OptimizedModel::StripHeader_t);
 
 			submeshes.write(submesh);
 			
@@ -135,8 +135,8 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 			extendedWeightsBufSize += submeshInput.externalWeightSize;
 
 			void* externalWeightsPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, legacyWeightOffset) + submeshInput.legacyWeightOffset);
-			std::memcpy(externalWeightsBuf.get() + externalWeightsBufSize, externalWeightsPtr, submeshInput.legacyWeightCount * 0x10);
-			externalWeightsBufSize += submeshInput.legacyWeightCount * 0x10;
+			std::memcpy(externalWeightsBuf.get() + externalWeightsBufSize, externalWeightsPtr, submeshInput.legacyWeightCount * sizeof(vvd::mstudioboneweight_t));
+			externalWeightsBufSize += submeshInput.legacyWeightCount * sizeof(vvd::mstudioboneweight_t);
 
 			void* stripsPtr = (thisSubmeshPointer + offsetof(vg::rev2::MeshHeader_t, stripOffset) + submeshInput.stripOffset);
 			std::memcpy(stripsBuf.get() + stripsBufSize, stripsPtr, submeshInput.stripCount * sizeof(OptimizedModel::StripHeader_t));
@@ -192,7 +192,7 @@ void ConvertVGData_12_1(char* buf, const std::string& filePath, const std::strin
 	vgh.extraBoneWeightSize = extendedWeightsBufSize;
 	vgh.lodCount = vghInput.lodCount;
 	vgh.unknownCount = vgh.meshCount / vgh.lodCount;
-	vgh.legacyWeightOffset = externalWeightsBufSize / 0x10;
+	vgh.legacyWeightOffset = externalWeightsBufSize / sizeof(vvd::mstudioboneweight_t);
 	vgh.stripCount = stripsBufSize / sizeof(OptimizedModel::StripHeader_t);
 
 	BinaryIO out;
@@ -394,21 +394,16 @@ void ConvertBones_121(r5::v121::mstudiobone_t* pOldBones, int numBones, bool isR
 		newBone->poseToBone = oldBone->poseToBone;
 		newBone->qAlignment = oldBone->qAlignment;
 		newBone->flags = oldBone->flags; // rigs should only have certain flags
-		//newBone->proctype = oldBone->proctype;
-		//newBone->procindex = oldBone->procindex;
-		//newBone->physicsbone = oldBone->physicsbone;
+		newBone->proctype = oldBone->proctype;
+		newBone->procindex = oldBone->procindex;
+		newBone->physicsbone = oldBone->physicsbone;
 		newBone->contents = oldBone->contents;
 		newBone->surfacepropLookup = oldBone->surfacepropLookup;
 
-		if (!isRig)
-		{
-			newBone->proctype = oldBone->proctype;
-			newBone->procindex = oldBone->procindex;
-			newBone->physicsbone = oldBone->physicsbone;
+		newBone->collisionIndex = oldBone->collisionIndex == 0xFF ? -1 : oldBone->collisionIndex;
 
-			if (oldBone->proctype != 0)
-				proceduralBones.push_back(newBone);
-		}
+		if (oldBone->proctype > 0)
+			proceduralBones.push_back(newBone);
 	}
 	g_model.hdrV54()->boneindex = g_model.pData - g_model.pBase;
 	g_model.pData += numBones * sizeof(r5::v8::mstudiobone_t);
@@ -416,11 +411,10 @@ void ConvertBones_121(r5::v121::mstudiobone_t* pOldBones, int numBones, bool isR
 	ALIGN4(g_model.pData);
 
 	// rigs do not have proc bones
-	if (isRig)
+	if (proceduralBones.empty())
 		return;
 
-	if (proceduralBones.size() > 0)
-		printf("converting %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
+	printf("copying %lld procedural bones (jiggle bones)...\n", proceduralBones.size());
 
 	std::map<uint8_t, uint8_t> linearprocbones;
 
@@ -428,45 +422,13 @@ void ConvertBones_121(r5::v121::mstudiobone_t* pOldBones, int numBones, bool isR
 	{
 		int boneid = ((char*)bone - pBoneStart) / sizeof(r5::v8::mstudiobone_t);
 		r5::v121::mstudiobone_t* oldBone = &pOldBones[boneid];
-		mstudiojigglebone_t* oldJBone = PTR_FROM_IDX(mstudiojigglebone_t, oldBone, oldBone->procindex);
+		void* oldJBone = PTR_FROM_IDX(void*, oldBone, oldBone->procindex);
 
 		r5::v8::mstudiojigglebone_t* jBone = reinterpret_cast<r5::v8::mstudiojigglebone_t*>(g_model.pData);
 
 		bone->procindex = (char*)jBone - (char*)bone;
-		jBone->flags = oldJBone->flags;
-		jBone->bone = boneid;
-		jBone->length = oldJBone->length;
-		jBone->tipMass = oldJBone->tipMass;
-		jBone->yawStiffness = oldJBone->yawStiffness;
-		jBone->yawDamping = oldJBone->yawDamping;
-		jBone->pitchStiffness = oldJBone->pitchStiffness;
-		jBone->pitchDamping = oldJBone->pitchDamping;
-		jBone->alongStiffness = oldJBone->alongStiffness;
-		jBone->alongDamping = oldJBone->alongDamping;
-		jBone->angleLimit = oldJBone->angleLimit;
-		jBone->minYaw = oldJBone->minYaw;
-		jBone->maxYaw = oldJBone->maxYaw;
-		jBone->yawFriction = oldJBone->yawFriction;
-		jBone->yawBounce = oldJBone->yawBounce;
-		jBone->baseMass = oldJBone->baseMass;
-		jBone->baseStiffness = oldJBone->baseStiffness;
-		jBone->baseDamping = oldJBone->baseDamping;
-		jBone->baseMinLeft = oldJBone->baseMinLeft;
-		jBone->baseMaxLeft = oldJBone->baseMaxLeft;
-		jBone->baseLeftFriction = oldJBone->baseLeftFriction;
-		jBone->baseMinUp = oldJBone->baseMinUp;
-		jBone->baseMaxUp = oldJBone->baseMaxUp;
-		jBone->baseUpFriction = oldJBone->baseUpFriction;
-		jBone->baseMinForward = oldJBone->baseMinForward;
-		jBone->baseMaxForward = oldJBone->baseMaxForward;
-		jBone->baseForwardFriction = oldJBone->baseForwardFriction;
-
-		jBone->minPitch = oldJBone->minPitch;
-		jBone->maxPitch = oldJBone->maxPitch;
-		jBone->pitchFriction = oldJBone->pitchFriction;
-		jBone->pitchBounce = oldJBone->pitchBounce;
-
-		jBone->flags |= JIGGLE_UNK; // this is required for a lot of jigglbone checks, they no longer check for 'JIGGLE_IS_FLEXIBLE'
+		
+		memcpy_s(jBone, sizeof(r5::v8::mstudiojigglebone_t), oldJBone, sizeof(r5::v8::mstudiojigglebone_t));
 
 		linearprocbones.emplace(jBone->bone, linearprocbones.size());
 
@@ -475,8 +437,7 @@ void ConvertBones_121(r5::v121::mstudiobone_t* pOldBones, int numBones, bool isR
 
 	ALIGN4(g_model.pData);
 
-	if (linearprocbones.size() == 0)
-		return;
+	assert(linearprocbones.size(), "should have linear proc bones");
 
 	g_model.hdrV54()->procBoneCount = linearprocbones.size();
 	g_model.hdrV54()->procBoneTableOffset = g_model.pData - g_model.pBase;

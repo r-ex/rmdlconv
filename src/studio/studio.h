@@ -2957,19 +2957,19 @@ namespace r5
 
 			int surfacepropLookup; // this index must be cached by the loader, not saved in the file
 
-			int unk;
+			int unk_B0;
 
-			int unkid; // physics index (?)
+			int collisionIndex; // index into sections of collision, phy, bvh, etc. needs confirming
 		};
 
 		// apex changed this a bit, 'is_rigid' cut
 		struct mstudiojigglebone_t
 		{
-			char flags;
+			uint8_t flags;
 
-			unsigned char bone; // id of bone, might be single byte
+			uint8_t bone; // id of bone, might be single byte
 
-			short pad; // possibly unused, possibly struct packing
+			uint8_t pad[2]; // possibly unused, possibly struct packing
 
 			// general params
 			float length; // how far from bone base, along bone, is tip
@@ -4056,9 +4056,9 @@ namespace r5
 
 			int surfacepropLookup; // this index must be cached by the loader, not saved in the file
 			
-			byte unkid; // this is separate because it's set to 0xFF when unused (-1)
+			uint8_t collisionIndex; // index into sections of collision, phy, bvh, etc. needs confirming
 
-			byte unk1[3]; // maybe this is 'unk'?
+			uint8_t unk_B1[3]; // maybe this is 'unk'?
 		};
 
 		struct mstudiomodel_t
