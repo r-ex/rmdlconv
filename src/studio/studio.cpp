@@ -5,6 +5,26 @@
 #include <studio/studio.h>
 #include <studio/versions.h>
 
+// [rika]: intake int as that's the type for flags pre-r5
+// converts normal source jigglebone flags to apex legends
+const uint16_t ConvertJiggleBoneFlags_R5(const int in)
+{
+	constexpr uint8_t tipFlexMask = (JIGGLE_IS_FLEXIBLE | JIGGLE_IS_RIGID); // mask for flex and rigid flags
+	constexpr uint8_t flagMask = ~tipFlexMask; // mask for all flags except flex and rigid
+
+	const uint8_t flagsOld = in & 0xFF; // field in r5 is 8 bits so only take 8 bits worth of flags
+
+	uint8_t flags = flagsOld & flagMask; // set all flags besides flex and rigid
+
+	// if flex or rigid are used set them accordingly
+	if (flagsOld & tipFlexMask)
+	{
+		flags |= JIGGLE_HAS_TIP_FLEX;
+		flags |= flagsOld & JIGGLE_IS_FLEXIBLE; // if flexible, sets 0x1, if rigid, sets 0x0
+	}
+
+	return flags;
+}
 
 // my beloved
 void GetVertexesFromVVD(vvd::vertexFileHeader_t* pVVD, vvc::vertexColorFileHeader_t* pVVC, const int lodLevel, std::vector<const vvd::mstudiovertex_t*>& pVvdVertices, std::vector<const Vector4D*>& pVvdTangents, std::vector<const Color32*>& pVvcColors, std::vector<const Vector2D*>& pVvcUv2s)
